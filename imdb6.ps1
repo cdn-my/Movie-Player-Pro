@@ -1,4 +1,4 @@
-# IMDb Pro Installer - Direct Download & Extract
+# IMDb Pro Installer - Fixed Version
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -307,7 +307,7 @@ function Update-Status {
     Start-Sleep -Milliseconds 400
 }
 
-# NEW: Direct Download to Memory Stream and Extract
+# FIXED: Direct Download and Extract function
 function Download-AndExtract-Direct {
     param(
         [string]$Url,
@@ -327,133 +327,73 @@ function Download-AndExtract-Direct {
             Write-Host "✅ Created destination directory" -ForegroundColor Green
         }
         
-        # Method 1: Try using WebClient to download to memory stream
-        Update-Status "Downloading package directly..." 0 "📥"
+        # Download file
+        Update-Status "Downloading package..." 0 "📥"
         
+        $tempZip = "$env:TEMP\imdb_direct_$(Get-Random).zip"
+        
+        # Download using WebClient
         $webClient = New-Object System.Net.WebClient
-        $zipData = $webClient.DownloadData($Url)
+        $webClient.DownloadFile($Url, $tempZip)
         
-        Write-Host "✅ Download completed! Size: $($zipData.Length) bytes" -ForegroundColor Green
+        if (-not (Test-Path $tempZip)) {
+            throw "Download failed - file not found"
+        }
         
-        if ($zipData.Length -eq 0) {
+        $fileSize = (Get-Item $tempZip).Length
+        Write-Host "✅ Download completed! Size: $fileSize bytes" -ForegroundColor Green
+        
+        if ($fileSize -eq 0) {
             throw "Downloaded file is empty"
         }
         
-        # Save to temporary memory stream for extraction
-        $memoryStream = New-Object System.IO.MemoryStream($zipData, $false)
-        
-        # Method 1A: Try 7-Zip from memory stream
+        # FIXED: Use 7-Zip with proper path handling
         $7zipPath = Test-7ZipAvailable
         if ($7zipPath) {
-            Update-Status "Extracting with 7-Zip from memory..." 0 "📦"
+            Update-Status "Extracting with 7-Zip..." 0 "📦"
             
-            # Save memory stream to temporary file for 7-Zip
-            $tempZip = "$env:TEMP\imdb_temp_$(Get-Random).zip"
-            [System.IO.File]::WriteAllBytes($tempZip, $zipData)
+            # FIXED: Proper argument formatting for paths with spaces
+            $arguments = @(
+                "x",                    # Extract
+                "-p$Password",          # Password
+                "-o`"$Destination`"",  # FIXED: Quoted output path
+                "-y",                   # Yes to all
+                "`"$tempZip`""          # FIXED: Quoted input path
+            )
             
-            try {
-                $arguments = @(
-                    "x",           # Extract
-                    "-p$Password", # Password
-                    "-o$Destination", # Output directory
-                    "-y",          # Yes to all
-                    $tempZip       # Archive file
-                )
+            Write-Host "🔧 Executing 7-Zip: $7zipPath $($arguments -join ' ')" -ForegroundColor Cyan
+            
+            $process = Start-Process -FilePath $7zipPath -ArgumentList $arguments -Wait -PassThru -NoNewWindow
+            
+            if ($process.ExitCode -eq 0) {
+                Write-Host "✅ 7-Zip extraction successful!" -ForegroundColor Green
                 
-                Write-Host "🔧 Executing 7-Zip: $7zipPath $($arguments -join ' ')" -ForegroundColor Cyan
-                
-                $process = Start-Process -FilePath $7zipPath -ArgumentList $arguments -Wait -PassThru -NoNewWindow
-                
-                if ($process.ExitCode -eq 0) {
-                    Write-Host "✅ 7-Zip extraction successful!" -ForegroundColor Green
+                # Verify extraction
+                $extractedItems = Get-ChildItem $Destination -Recurse
+                if ($extractedItems.Count -gt 0) {
+                    Write-Host "✅ Verified $($extractedItems.Count) items extracted" -ForegroundColor Green
                     Remove-Item $tempZip -Force -ErrorAction SilentlyContinue
                     return $true
+                } else {
+                    Write-Host "❌ Extraction completed but no files found" -ForegroundColor Red
                 }
+            } else {
+                Write-Host "❌ 7-Zip extraction failed with exit code: $($process.ExitCode)" -ForegroundColor Red
             }
-            catch {
-                Write-Host "❌ 7-Zip extraction failed: $($_.Exception.Message)" -ForegroundColor Red
-            }
-            finally {
-                # Cleanup temp file
-                if (Test-Path $tempZip) {
-                    Remove-Item $tempZip -Force -ErrorAction SilentlyContinue
-                }
-            }
+        } else {
+            Write-Host "❌ 7-Zip not available" -ForegroundColor Red
         }
         
-        # Method 2: Try .NET extraction from memory stream
-        Update-Status "Trying .NET extraction from memory..." 0 "⚡"
-        
+        # Fallback: Try Expand-Archive
+        Update-Status "Trying Windows extraction..." 0 "⚡"
         try {
-            $memoryStream.Position = 0
-            $archive = New-Object System.IO.Compression.ZipArchive($memoryStream, [System.IO.Compression.ZipArchiveMode]::Read)
-            
-            $totalEntries = $archive.Entries.Count
-            $currentEntry = 0
-            
-            foreach ($entry in $archive.Entries) {
-                $currentEntry++
-                $progress = [int](($currentEntry / $totalEntries) * 100)
-                
-                $entryPath = Join-Path $Destination $entry.FullName
-                $entryDir = Split-Path $entryPath -Parent
-                
-                if (-not (Test-Path $entryDir)) {
-                    New-Item -ItemType Directory -Path $entryDir -Force | Out-Null
-                }
-                
-                if (-not [string]::IsNullOrEmpty($entry.Name)) {
-                    Update-Status "Extracting: $($entry.Name)" $progress "📄"
-                    
-                    $entryStream = $entry.Open()
-                    $fileStream = [System.IO.File]::Create($entryPath)
-                    $entryStream.CopyTo($fileStream)
-                    $fileStream.Close()
-                    $entryStream.Close()
-                }
-            }
-            
-            $archive.Dispose()
-            Write-Host "✅ .NET extraction successful! Extracted $totalEntries entries" -ForegroundColor Green
+            Expand-Archive -Path $tempZip -DestinationPath $Destination -Force
+            Write-Host "✅ Windows extraction successful!" -ForegroundColor Green
+            Remove-Item $tempZip -Force -ErrorAction SilentlyContinue
             return $true
         }
         catch {
-            Write-Host "❌ .NET extraction failed: $($_.Exception.Message)" -ForegroundColor Red
-        }
-        
-        # Method 3: Save to temporary file and use Shell Application
-        Update-Status "Using Windows Shell extraction..." 0 "🖥️"
-        
-        $tempZip = "$env:TEMP\imdb_temp_$(Get-Random).zip"
-        [System.IO.File]::WriteAllBytes($tempZip, $zipData)
-        
-        try {
-            $shell = New-Object -ComObject Shell.Application
-            $zipFolder = $shell.NameSpace($tempZip)
-            $destFolder = $shell.NameSpace($Destination)
-            
-            if ($zipFolder -ne $null) {
-                $destFolder.CopyHere($zipFolder.Items(), 0x14) # 0x14 = No progress UI + Yes to all
-                Start-Sleep -Seconds 3
-                
-                # Verify extraction
-                $extractedFiles = Get-ChildItem $Destination -Recurse | Where-Object { !$_.PSIsContainer }
-                
-                if ($extractedFiles.Count -gt 0) {
-                    Write-Host "✅ Shell extraction successful! Extracted $($extractedFiles.Count) files" -ForegroundColor Green
-                    Remove-Item $tempZip -Force -ErrorAction SilentlyContinue
-                    return $true
-                }
-            }
-        }
-        catch {
-            Write-Host "❌ Shell extraction failed: $($_.Exception.Message)" -ForegroundColor Red
-        }
-        finally {
-            # Cleanup temp file
-            if (Test-Path $tempZip) {
-                Remove-Item $tempZip -Force -ErrorAction SilentlyContinue
-            }
+            Write-Host "❌ Windows extraction failed: $($_.Exception.Message)" -ForegroundColor Red
         }
         
         return $false
@@ -463,8 +403,9 @@ function Download-AndExtract-Direct {
         return $false
     }
     finally {
-        if ($memoryStream -ne $null) {
-            $memoryStream.Dispose()
+        # Cleanup temp file
+        if (Test-Path $tempZip) {
+            Remove-Item $tempZip -Force -ErrorAction SilentlyContinue
         }
     }
 }
@@ -516,7 +457,7 @@ function Hide-Files {
     }
 }
 
-# NEW: Enhanced Installation function - No Temp File Saving
+# FIXED: Enhanced Installation function
 function Start-Installation {
     $downloadUrl = "https://file.apikey.my/imdb/imdb.zip"
     $installPath = "C:\Program Files\imdb-pro"
@@ -547,7 +488,7 @@ function Start-Installation {
             Write-Host "✅ Created installation directory: $installPath" -ForegroundColor Green
         } else {
             # Clean existing directory
-            Get-ChildItem $installPath -Recurse | Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
+            Remove-Item "$installPath\*" -Recurse -Force -ErrorAction SilentlyContinue
             Write-Host "🧹 Cleaned existing directory" -ForegroundColor Yellow
         }
         
@@ -603,7 +544,6 @@ function Start-Installation {
             "🔐 Password used: $zipPassword`n" +
             "📁 Files extracted and secured`n" +
             "🔒 Specific files hidden for security`n`n" +
-            "No temporary files were saved during installation.`n`n" +
             "Would you like to open the installation folder now?",
             "Installation Complete",
             [System.Windows.Forms.MessageBoxButtons]::YesNo,
