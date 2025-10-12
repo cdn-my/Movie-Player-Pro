@@ -15,7 +15,7 @@ $consolePtr = [Console.Window]::GetConsoleWindow()
 # Create main form - Professional Installer Style
 $mainForm = New-Object System.Windows.Forms.Form
 $mainForm.Text = "Install IMDb Pro"
-$mainForm.Size = New-Object System.Drawing.Size(500, 350)
+$mainForm.Size = New-Object System.Drawing.Size(500, 250)
 $mainForm.StartPosition = "CenterScreen"
 $mainForm.BackColor = [System.Drawing.Color]::White
 $mainForm.ForeColor = [System.Drawing.Color]::FromArgb(32, 32, 32)
@@ -56,40 +56,13 @@ $versionLabel.AutoSize = $true
 $versionLabel.Location = New-Object System.Drawing.Point(20, 105)
 $mainForm.Controls.Add($versionLabel)
 
-# Features section title
-$featuresTitle = New-Object System.Windows.Forms.Label
-$featuresTitle.Text = "Features:"
-$featuresTitle.Font = New-Object System.Drawing.Font("Segoe UI", 10, [System.Drawing.FontStyle]::Bold)
-$featuresTitle.ForeColor = [System.Drawing.Color]::FromArgb(32, 32, 32)
-$featuresTitle.AutoSize = $true
-$featuresTitle.Location = New-Object System.Drawing.Point(20, 140)
-$mainForm.Controls.Add($featuresTitle)
-
-# Features list
-$features = @(
-    "• Enhanced movie information display",
-    "• Real-time ratings and reviews", 
-    "• Streaming service integration",
-    "• Personalized recommendations"
-)
-
-for ($i = 0; $i -lt $features.Count; $i++) {
-    $featureLabel = New-Object System.Windows.Forms.Label
-    $featureLabel.Text = $features[$i]
-    $featureLabel.Font = New-Object System.Drawing.Font("Segoe UI", 9)
-    $featureLabel.ForeColor = [System.Drawing.Color]::FromArgb(64, 64, 64)
-    $featureLabel.AutoSize = $true
-    $featureLabel.Location = New-Object System.Drawing.Point(35, 165 + ($i * 25))
-    $mainForm.Controls.Add($featureLabel)
-}
-
 # Checkboxes section
 $launchCheckbox = New-Object System.Windows.Forms.CheckBox
 $launchCheckbox.Text = "Launch when ready"
 $launchCheckbox.Font = New-Object System.Drawing.Font("Segoe UI", 9)
 $launchCheckbox.ForeColor = [System.Drawing.Color]::FromArgb(32, 32, 32)
 $launchCheckbox.AutoSize = $true
-$launchCheckbox.Location = New-Object System.Drawing.Point(20, 270)
+$launchCheckbox.Location = New-Object System.Drawing.Point(20, 140)
 $launchCheckbox.Checked = $true
 $mainForm.Controls.Add($launchCheckbox)
 
@@ -98,13 +71,13 @@ $installCheckbox.Text = "Install"
 $installCheckbox.Font = New-Object System.Drawing.Font("Segoe UI", 9, [System.Drawing.FontStyle]::Bold)
 $installCheckbox.ForeColor = [System.Drawing.Color]::FromArgb(32, 32, 32)
 $installCheckbox.AutoSize = $true
-$installCheckbox.Location = New-Object System.Drawing.Point(20, 295)
+$installCheckbox.Location = New-Object System.Drawing.Point(20, 165)
 $installCheckbox.Checked = $true
 $mainForm.Controls.Add($installCheckbox)
 
 # Progress bar (hidden initially)
 $progressBar = New-Object System.Windows.Forms.ProgressBar
-$progressBar.Location = New-Object System.Drawing.Point(20, 270)
+$progressBar.Location = New-Object System.Drawing.Point(20, 140)
 $progressBar.Size = New-Object System.Drawing.Size(460, 20)
 $progressBar.Style = [System.Windows.Forms.ProgressBarStyle]::Continuous
 $progressBar.ForeColor = [System.Drawing.Color]::FromArgb(0, 120, 215)
@@ -117,7 +90,7 @@ $statusLabel.Text = "Installing..."
 $statusLabel.Font = New-Object System.Drawing.Font("Segoe UI", 9)
 $statusLabel.ForeColor = [System.Drawing.Color]::FromArgb(64, 64, 64)
 $statusLabel.AutoSize = $true
-$statusLabel.Location = New-Object System.Drawing.Point(20, 295)
+$statusLabel.Location = New-Object System.Drawing.Point(20, 165)
 $statusLabel.Visible = $false
 $mainForm.Controls.Add($statusLabel)
 
@@ -184,17 +157,14 @@ function Show-CompletionView {
     $closeButton.Cursor = [System.Windows.Forms.Cursors]::Hand
     $closeButton.Add_Click({
         if ($launchCheckbox.Checked) {
-            # Launch browser with extension installation page
             try {
                 Start-Process "chrome.exe" "chrome://extensions"
             }
             catch {
-                # Chrome not installed, try Edge
                 try {
                     Start-Process "msedge.exe" "edge://extensions"
                 }
                 catch {
-                    # Continue without launching browser
                 }
             }
         }
