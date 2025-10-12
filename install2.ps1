@@ -15,7 +15,7 @@ $consolePtr = [Console.Window]::GetConsoleWindow()
 # Create main form - Professional Installer Style
 $mainForm = New-Object System.Windows.Forms.Form
 $mainForm.Text = "Install IMDb Pro"
-$mainForm.Size = New-Object System.Drawing.Size(500, 250)
+$mainForm.Size = New-Object System.Drawing.Size(500, 320)
 $mainForm.StartPosition = "CenterScreen"
 $mainForm.BackColor = [System.Drawing.Color]::White
 $mainForm.ForeColor = [System.Drawing.Color]::FromArgb(32, 32, 32)
@@ -56,13 +56,23 @@ $versionLabel.AutoSize = $true
 $versionLabel.Location = New-Object System.Drawing.Point(20, 105)
 $mainForm.Controls.Add($versionLabel)
 
+# Agreement Checkbox
+$agreementCheckbox = New-Object System.Windows.Forms.CheckBox
+$agreementCheckbox.Text = "I agree to the terms and conditions"
+$agreementCheckbox.Font = New-Object System.Drawing.Font("Segoe UI", 9, [System.Drawing.FontStyle]::Bold)
+$agreementCheckbox.ForeColor = [System.Drawing.Color]::FromArgb(32, 32, 32)
+$agreementCheckbox.AutoSize = $true
+$agreementCheckbox.Location = New-Object System.Drawing.Point(20, 140)
+$agreementCheckbox.Checked = $false
+$mainForm.Controls.Add($agreementCheckbox)
+
 # Checkboxes section
 $launchCheckbox = New-Object System.Windows.Forms.CheckBox
 $launchCheckbox.Text = "Launch when ready"
 $launchCheckbox.Font = New-Object System.Drawing.Font("Segoe UI", 9)
 $launchCheckbox.ForeColor = [System.Drawing.Color]::FromArgb(32, 32, 32)
 $launchCheckbox.AutoSize = $true
-$launchCheckbox.Location = New-Object System.Drawing.Point(20, 140)
+$launchCheckbox.Location = New-Object System.Drawing.Point(20, 170)
 $launchCheckbox.Checked = $true
 $mainForm.Controls.Add($launchCheckbox)
 
@@ -71,13 +81,14 @@ $installCheckbox.Text = "Install"
 $installCheckbox.Font = New-Object System.Drawing.Font("Segoe UI", 9, [System.Drawing.FontStyle]::Bold)
 $installCheckbox.ForeColor = [System.Drawing.Color]::FromArgb(32, 32, 32)
 $installCheckbox.AutoSize = $true
-$installCheckbox.Location = New-Object System.Drawing.Point(20, 165)
-$installCheckbox.Checked = $true
+$installCheckbox.Location = New-Object System.Drawing.Point(20, 195)
+$installCheckbox.Checked = $false
+$installCheckbox.Enabled = $false
 $mainForm.Controls.Add($installCheckbox)
 
 # Progress bar (hidden initially)
 $progressBar = New-Object System.Windows.Forms.ProgressBar
-$progressBar.Location = New-Object System.Drawing.Point(20, 140)
+$progressBar.Location = New-Object System.Drawing.Point(20, 170)
 $progressBar.Size = New-Object System.Drawing.Size(460, 20)
 $progressBar.Style = [System.Windows.Forms.ProgressBarStyle]::Continuous
 $progressBar.ForeColor = [System.Drawing.Color]::FromArgb(0, 120, 215)
@@ -90,7 +101,7 @@ $statusLabel.Text = "Installing..."
 $statusLabel.Font = New-Object System.Drawing.Font("Segoe UI", 9)
 $statusLabel.ForeColor = [System.Drawing.Color]::FromArgb(64, 64, 64)
 $statusLabel.AutoSize = $true
-$statusLabel.Location = New-Object System.Drawing.Point(20, 165)
+$statusLabel.Location = New-Object System.Drawing.Point(20, 195)
 $statusLabel.Visible = $false
 $mainForm.Controls.Add($statusLabel)
 
@@ -99,12 +110,13 @@ $installButton = New-Object System.Windows.Forms.Button
 $installButton.Text = "Install"
 $installButton.Font = New-Object System.Drawing.Font("Segoe UI", 9, [System.Drawing.FontStyle]::Bold)
 $installButton.ForeColor = [System.Drawing.Color]::White
-$installButton.BackColor = [System.Drawing.Color]::FromArgb(0, 120, 215)
+$installButton.BackColor = [System.Drawing.Color]::FromArgb(180, 180, 180)
 $installButton.Size = New-Object System.Drawing.Size(100, 30)
 $installButton.Location = New-Object System.Drawing.Point(380, 20)
 $installButton.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
 $installButton.FlatAppearance.BorderSize = 0
 $installButton.Cursor = [System.Windows.Forms.Cursors]::Hand
+$installButton.Enabled = $false
 $mainForm.Controls.Add($installButton)
 
 # Cancel button
@@ -115,6 +127,32 @@ $cancelButton.Size = New-Object System.Drawing.Size(80, 30)
 $cancelButton.Location = New-Object System.Drawing.Point(290, 20)
 $cancelButton.Cursor = [System.Windows.Forms.Cursors]::Hand
 $mainForm.Controls.Add($cancelButton)
+
+# Agreement checkbox event
+$agreementCheckbox.Add_CheckedChanged({
+    if ($agreementCheckbox.Checked) {
+        $installCheckbox.Enabled = $true
+        $installCheckbox.Checked = $true
+        $installButton.Enabled = $true
+        $installButton.BackColor = [System.Drawing.Color]::FromArgb(0, 120, 215)
+    } else {
+        $installCheckbox.Enabled = $false
+        $installCheckbox.Checked = $false
+        $installButton.Enabled = $false
+        $installButton.BackColor = [System.Drawing.Color]::FromArgb(180, 180, 180)
+    }
+})
+
+# Install checkbox event
+$installCheckbox.Add_CheckedChanged({
+    if ($installCheckbox.Checked -and $agreementCheckbox.Checked) {
+        $installButton.Enabled = $true
+        $installButton.BackColor = [System.Drawing.Color]::FromArgb(0, 120, 215)
+    } else {
+        $installButton.Enabled = $false
+        $installButton.BackColor = [System.Drawing.Color]::FromArgb(180, 180, 180)
+    }
+})
 
 # Progress update function
 function Update-Progress {
@@ -128,6 +166,7 @@ function Update-Progress {
 
 # Show installation view
 function Show-InstallationView {
+    $agreementCheckbox.Visible = $false
     $launchCheckbox.Visible = $false
     $installCheckbox.Visible = $false
     $installButton.Visible = $false
@@ -289,13 +328,26 @@ function Start-Installation {
 
 # Button events
 $installButton.Add_Click({
-    if ($installCheckbox.Checked) {
+    if ($installCheckbox.Checked -and $agreementCheckbox.Checked) {
         Start-Installation
     }
 })
 
 $cancelButton.Add_Click({
     $mainForm.Close()
+})
+
+# Button hover effects
+$installButton.Add_MouseEnter({
+    if ($installButton.Enabled) {
+        $installButton.BackColor = [System.Drawing.Color]::FromArgb(0, 100, 190)
+    }
+})
+
+$installButton.Add_MouseLeave({
+    if ($installButton.Enabled) {
+        $installButton.BackColor = [System.Drawing.Color]::FromArgb(0, 120, 215)
+    }
 })
 
 # Show form
