@@ -1,4 +1,4 @@
-# IMDb Pro Installer - Dev Home Style UI
+# IMDb Pro Installer - Clean Professional UI
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
@@ -12,10 +12,10 @@ public static extern bool ShowWindow(IntPtr hWnd, Int32 nCmdShow);
 $consolePtr = [Console.Window]::GetConsoleWindow()
 [Console.Window]::ShowWindow($consolePtr, 0) | Out-Null
 
-# Create main form - Windows Installer Style
+# Create main form - Professional Installer Style
 $mainForm = New-Object System.Windows.Forms.Form
 $mainForm.Text = "Install IMDb Pro"
-$mainForm.Size = New-Object System.Drawing.Size(500, 420)
+$mainForm.Size = New-Object System.Drawing.Size(500, 350)
 $mainForm.StartPosition = "CenterScreen"
 $mainForm.BackColor = [System.Drawing.Color]::White
 $mainForm.ForeColor = [System.Drawing.Color]::FromArgb(32, 32, 32)
@@ -56,31 +56,31 @@ $versionLabel.AutoSize = $true
 $versionLabel.Location = New-Object System.Drawing.Point(20, 105)
 $mainForm.Controls.Add($versionLabel)
 
-# Capabilities section title
-$capabilitiesTitle = New-Object System.Windows.Forms.Label
-$capabilitiesTitle.Text = "Capabilities:"
-$capabilitiesTitle.Font = New-Object System.Drawing.Font("Segoe UI", 10, [System.Drawing.FontStyle]::Bold)
-$capabilitiesTitle.ForeColor = [System.Drawing.Color]::FromArgb(32, 32, 32)
-$capabilitiesTitle.AutoSize = $true
-$capabilitiesTitle.Location = New-Object System.Drawing.Point(20, 140)
-$mainForm.Controls.Add($capabilitiesTitle)
+# Features section title
+$featuresTitle = New-Object System.Windows.Forms.Label
+$featuresTitle.Text = "Features:"
+$featuresTitle.Font = New-Object System.Drawing.Font("Segoe UI", 10, [System.Drawing.FontStyle]::Bold)
+$featuresTitle.ForeColor = [System.Drawing.Color]::FromArgb(32, 32, 32)
+$featuresTitle.AutoSize = $true
+$featuresTitle.Location = New-Object System.Drawing.Point(20, 140)
+$mainForm.Controls.Add($featuresTitle)
 
-# Capabilities list
-$capabilities = @(
-    "• Access browser data and browsing history",
-    "• Modify web page content",
-    "• Communicate with external services",
-    "• Store data locally on your device"
+# Features list
+$features = @(
+    "• Enhanced movie information display",
+    "• Real-time ratings and reviews", 
+    "• Streaming service integration",
+    "• Personalized recommendations"
 )
 
-for ($i = 0; $i -lt $capabilities.Count; $i++) {
-    $capLabel = New-Object System.Windows.Forms.Label
-    $capLabel.Text = $capabilities[$i]
-    $capLabel.Font = New-Object System.Drawing.Font("Segoe UI", 9)
-    $capLabel.ForeColor = [System.Drawing.Color]::FromArgb(64, 64, 64)
-    $capLabel.AutoSize = $true
-    $capLabel.Location = New-Object System.Drawing.Point(35, 165 + ($i * 25))
-    $mainForm.Controls.Add($capLabel)
+for ($i = 0; $i -lt $features.Count; $i++) {
+    $featureLabel = New-Object System.Windows.Forms.Label
+    $featureLabel.Text = $features[$i]
+    $featureLabel.Font = New-Object System.Drawing.Font("Segoe UI", 9)
+    $featureLabel.ForeColor = [System.Drawing.Color]::FromArgb(64, 64, 64)
+    $featureLabel.AutoSize = $true
+    $featureLabel.Location = New-Object System.Drawing.Point(35, 165 + ($i * 25))
+    $mainForm.Controls.Add($featureLabel)
 }
 
 # Checkboxes section
@@ -89,7 +89,7 @@ $launchCheckbox.Text = "Launch when ready"
 $launchCheckbox.Font = New-Object System.Drawing.Font("Segoe UI", 9)
 $launchCheckbox.ForeColor = [System.Drawing.Color]::FromArgb(32, 32, 32)
 $launchCheckbox.AutoSize = $true
-$launchCheckbox.Location = New-Object System.Drawing.Point(20, 280)
+$launchCheckbox.Location = New-Object System.Drawing.Point(20, 270)
 $launchCheckbox.Checked = $true
 $mainForm.Controls.Add($launchCheckbox)
 
@@ -98,42 +98,13 @@ $installCheckbox.Text = "Install"
 $installCheckbox.Font = New-Object System.Drawing.Font("Segoe UI", 9, [System.Drawing.FontStyle]::Bold)
 $installCheckbox.ForeColor = [System.Drawing.Color]::FromArgb(32, 32, 32)
 $installCheckbox.AutoSize = $true
-$installCheckbox.Location = New-Object System.Drawing.Point(20, 305)
+$installCheckbox.Location = New-Object System.Drawing.Point(20, 295)
 $installCheckbox.Checked = $true
 $mainForm.Controls.Add($installCheckbox)
 
-$cancelCheckbox = New-Object System.Windows.Forms.CheckBox
-$cancelCheckbox.Text = "Cancel"
-$cancelCheckbox.Font = New-Object System.Drawing.Font("Segoe UI", 9)
-$cancelCheckbox.ForeColor = [System.Drawing.Color]::FromArgb(32, 32, 32)
-$cancelCheckbox.AutoSize = $true
-$cancelCheckbox.Location = New-Object System.Drawing.Point(20, 330)
-$mainForm.Controls.Add($cancelCheckbox)
-
-# Warning text at bottom
-$warningLabel = New-Object System.Windows.Forms.Label
-$warningLabel.Text = "Browser extensions can potentially access your browsing data. If you do not trust the source, do not install this software."
-$warningLabel.Font = New-Object System.Drawing.Font("Segoe UI", 8)
-$warningLabel.ForeColor = [System.Drawing.Color]::FromArgb(128, 128, 128)
-$warningLabel.AutoSize = $false
-$warningLabel.Size = New-Object System.Drawing.Size(460, 40)
-$warningLabel.Location = New-Object System.Drawing.Point(20, 360)
-$mainForm.Controls.Add($warningLabel)
-
-# Learn more link
-$learnMoreLink = New-Object System.Windows.Forms.LinkLabel
-$learnMoreLink.Text = "Learn more"
-$learnMoreLink.Font = New-Object System.Drawing.Font("Segoe UI", 8)
-$learnMoreLink.Location = New-Object System.Drawing.Point(20, 400)
-$learnMoreLink.AutoSize = $true
-$learnMoreLink.Add_Click({
-    [System.Diagnostics.Process]::Start("https://support.microsoft.com/en-us/windows/what-is-a-desktop-bridge-app-6f06f3a5-34ef-2b36-9a4c-64393229b2ad")
-})
-$mainForm.Controls.Add($learnMoreLink)
-
 # Progress bar (hidden initially)
 $progressBar = New-Object System.Windows.Forms.ProgressBar
-$progressBar.Location = New-Object System.Drawing.Point(20, 280)
+$progressBar.Location = New-Object System.Drawing.Point(20, 270)
 $progressBar.Size = New-Object System.Drawing.Size(460, 20)
 $progressBar.Style = [System.Windows.Forms.ProgressBarStyle]::Continuous
 $progressBar.ForeColor = [System.Drawing.Color]::FromArgb(0, 120, 215)
@@ -146,7 +117,7 @@ $statusLabel.Text = "Installing..."
 $statusLabel.Font = New-Object System.Drawing.Font("Segoe UI", 9)
 $statusLabel.ForeColor = [System.Drawing.Color]::FromArgb(64, 64, 64)
 $statusLabel.AutoSize = $true
-$statusLabel.Location = New-Object System.Drawing.Point(20, 305)
+$statusLabel.Location = New-Object System.Drawing.Point(20, 295)
 $statusLabel.Visible = $false
 $mainForm.Controls.Add($statusLabel)
 
@@ -172,21 +143,6 @@ $cancelButton.Location = New-Object System.Drawing.Point(290, 20)
 $cancelButton.Cursor = [System.Windows.Forms.Cursors]::Hand
 $mainForm.Controls.Add($cancelButton)
 
-# Checkbox event handlers
-$installCheckbox.Add_CheckedChanged({
-    if ($installCheckbox.Checked) {
-        $cancelCheckbox.Checked = $false
-        $installButton.Enabled = $true
-    }
-})
-
-$cancelCheckbox.Add_CheckedChanged({
-    if ($cancelCheckbox.Checked) {
-        $installCheckbox.Checked = $false
-        $installButton.Enabled = $false
-    }
-})
-
 # Progress update function
 function Update-Progress {
     param([string]$Message, [int]$Progress)
@@ -201,7 +157,6 @@ function Update-Progress {
 function Show-InstallationView {
     $launchCheckbox.Visible = $false
     $installCheckbox.Visible = $false
-    $cancelCheckbox.Visible = $false
     $installButton.Visible = $false
     $cancelButton.Visible = $false
     
@@ -229,12 +184,18 @@ function Show-CompletionView {
     $closeButton.Cursor = [System.Windows.Forms.Cursors]::Hand
     $closeButton.Add_Click({
         if ($launchCheckbox.Checked) {
-            # Launch browser or extension
+            # Launch browser with extension installation page
             try {
-                Start-Process "chrome.exe"
+                Start-Process "chrome.exe" "chrome://extensions"
             }
             catch {
-                # Chrome not installed, continue
+                # Chrome not installed, try Edge
+                try {
+                    Start-Process "msedge.exe" "edge://extensions"
+                }
+                catch {
+                    # Continue without launching browser
+                }
             }
         }
         $mainForm.Close()
