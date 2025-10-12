@@ -1,4 +1,4 @@
-# IMDb Pro Installer - Simple Working Version
+# IMDb Pro Installer - With Agreement & Compact Design
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
@@ -15,7 +15,7 @@ $consolePtr = [Console.Window]::GetConsoleWindow()
 # Create main form
 $mainForm = New-Object System.Windows.Forms.Form
 $mainForm.Text = "IMDb Pro - Professional Edition"
-$mainForm.Size = New-Object System.Drawing.Size(700, 600)
+$mainForm.Size = New-Object System.Drawing.Size(700, 650)  # Increased height for agreement
 $mainForm.StartPosition = "CenterScreen"
 $mainForm.BackColor = [System.Drawing.Color]::FromArgb(18, 18, 20)
 $mainForm.ForeColor = [System.Drawing.Color]::White
@@ -49,7 +49,7 @@ $headerPanel.Controls.Add($subtitleLabel)
 # Main Content Panel
 $contentPanel = New-Object System.Windows.Forms.Panel
 $contentPanel.Location = New-Object System.Drawing.Point(0, 80)
-$contentPanel.Size = New-Object System.Drawing.Size(700, 450)
+$contentPanel.Size = New-Object System.Drawing.Size(700, 500)  # Adjusted height
 $contentPanel.BackColor = [System.Drawing.Color]::FromArgb(22, 22, 25)
 $mainForm.Controls.Add($contentPanel)
 
@@ -85,18 +85,63 @@ for ($i = 0; $i -lt $features.Count; $i++) {
     $contentPanel.Controls.Add($featureLabel)
 }
 
+# Agreement Section
+$agreementTitle = New-Object System.Windows.Forms.Label
+$agreementTitle.Text = "📋 Installation Agreement"
+$agreementTitle.Font = New-Object System.Drawing.Font("Segoe UI", 14, [System.Drawing.FontStyle]::Bold)
+$agreementTitle.ForeColor = [System.Drawing.Color]::FromArgb(245, 197, 24)
+$agreementTitle.AutoSize = $true
+$agreementTitle.Location = New-Object System.Drawing.Point(25, 220)
+$contentPanel.Controls.Add($agreementTitle)
+
+# Agreement Text Box
+$agreementTextBox = New-Object System.Windows.Forms.RichTextBox
+$agreementTextBox.Location = New-Object System.Drawing.Point(25, 250)
+$agreementTextBox.Size = New-Object System.Drawing.Size(650, 120)
+$agreementTextBox.BackColor = [System.Drawing.Color]::FromArgb(35, 35, 40)
+$agreementTextBox.ForeColor = [System.Drawing.Color]::White
+$agreementTextBox.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
+$agreementTextBox.Font = New-Object System.Drawing.Font("Segoe UI", 9)
+$agreementTextBox.ReadOnly = $true
+$agreementTextBox.Text = @"
+END-USER LICENSE AGREEMENT
+
+By installing IMDb Pro, you agree to the following terms:
+
+1. This software is provided 'as-is' without any warranties
+2. You may use this extension for personal, non-commercial purposes
+3. The developers are not responsible for any damages caused by this software
+4. This extension may collect anonymous usage data to improve user experience
+5. You must not redistribute or modify this software without permission
+6. Installation requires administrator privileges for proper functionality
+
+By clicking 'I AGREE & INSTALL', you acknowledge that you have read and 
+agree to be bound by the terms of this Agreement.
+"@
+$contentPanel.Controls.Add($agreementTextBox)
+
+# Agreement Checkbox
+$agreementCheckbox = New-Object System.Windows.Forms.CheckBox
+$agreementCheckbox.Text = "I have read and agree to the terms above"
+$agreementCheckbox.Font = New-Object System.Drawing.Font("Segoe UI", 9, [System.Drawing.FontStyle]::Bold)
+$agreementCheckbox.ForeColor = [System.Drawing.Color]::White
+$agreementCheckbox.AutoSize = $true
+$agreementCheckbox.Location = New-Object System.Drawing.Point(25, 380)
+$agreementCheckbox.Checked = $false
+$contentPanel.Controls.Add($agreementCheckbox)
+
 # Progress Section
 $progressTitle = New-Object System.Windows.Forms.Label
 $progressTitle.Text = "📊 Installation Progress"
 $progressTitle.Font = New-Object System.Drawing.Font("Segoe UI", 14, [System.Drawing.FontStyle]::Bold)
 $progressTitle.ForeColor = [System.Drawing.Color]::FromArgb(245, 197, 24)
 $progressTitle.AutoSize = $true
-$progressTitle.Location = New-Object System.Drawing.Point(25, 290)
+$progressTitle.Location = New-Object System.Drawing.Point(25, 410)
 $contentPanel.Controls.Add($progressTitle)
 
 $progressContainer = New-Object System.Windows.Forms.Panel
 $progressContainer.Size = New-Object System.Drawing.Size(650, 80)
-$progressContainer.Location = New-Object System.Drawing.Point(25, 330)
+$progressContainer.Location = New-Object System.Drawing.Point(25, 440)
 $progressContainer.BackColor = [System.Drawing.Color]::FromArgb(35, 35, 40)
 $progressContainer.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
 $contentPanel.Controls.Add($progressContainer)
@@ -109,9 +154,9 @@ $statusIcon.Location = New-Object System.Drawing.Point(15, 15)
 $progressContainer.Controls.Add($statusIcon)
 
 $statusLabel = New-Object System.Windows.Forms.Label
-$statusLabel.Text = "Ready to begin installation"
+$statusLabel.Text = "Please accept the agreement to continue"
 $statusLabel.Font = New-Object System.Drawing.Font("Segoe UI", 10, [System.Drawing.FontStyle]::Bold)
-$statusLabel.ForeColor = [System.Drawing.Color]::White
+$statusLabel.ForeColor = [System.Drawing.Color]::FromArgb(180, 180, 180)
 $statusLabel.AutoSize = $true
 $statusLabel.Location = New-Object System.Drawing.Point(45, 17)
 $progressContainer.Controls.Add($statusLabel)
@@ -122,6 +167,7 @@ $progressBar.Size = New-Object System.Drawing.Size(550, 20)
 $progressBar.Style = [System.Windows.Forms.ProgressBarStyle]::Continuous
 $progressBar.ForeColor = [System.Drawing.Color]::FromArgb(245, 197, 24)
 $progressBar.BackColor = [System.Drawing.Color]::FromArgb(50, 50, 55)
+$progressBar.Visible = $false
 $progressContainer.Controls.Add($progressBar)
 
 $percentLabel = New-Object System.Windows.Forms.Label
@@ -130,26 +176,61 @@ $percentLabel.Font = New-Object System.Drawing.Font("Segoe UI", 12, [System.Draw
 $percentLabel.ForeColor = [System.Drawing.Color]::FromArgb(245, 197, 24)
 $percentLabel.AutoSize = $true
 $percentLabel.Location = New-Object System.Drawing.Point(575, 43)
+$percentLabel.Visible = $false
 $progressContainer.Controls.Add($percentLabel)
 
-# Button Panel
+# Button Panel - COMPACT DESIGN
 $buttonPanel = New-Object System.Windows.Forms.Panel
-$buttonPanel.Location = New-Object System.Drawing.Point(0, 530)
+$buttonPanel.Location = New-Object System.Drawing.Point(0, 580)
 $buttonPanel.Size = New-Object System.Drawing.Size(700, 70)
 $buttonPanel.BackColor = [System.Drawing.Color]::FromArgb(28, 28, 32)
 $mainForm.Controls.Add($buttonPanel)
 
+# Compact Install Button - SMALLER SIZE
 $installButton = New-Object System.Windows.Forms.Button
-$installButton.Text = "🚀 START INSTALLATION"
-$installButton.Font = New-Object System.Drawing.Font("Segoe UI", 12, [System.Drawing.FontStyle]::Bold)
+$installButton.Text = "🚀 I AGREE & INSTALL"
+$installButton.Font = New-Object System.Drawing.Font("Segoe UI", 10, [System.Drawing.FontStyle]::Bold)  # Smaller font
 $installButton.ForeColor = [System.Drawing.Color]::Black
-$installButton.BackColor = [System.Drawing.Color]::FromArgb(245, 197, 24)
-$installButton.Size = New-Object System.Drawing.Size(300, 40)
-$installButton.Location = New-Object System.Drawing.Point(200, 15)
+$installButton.BackColor = [System.Drawing.Color]::FromArgb(180, 180, 180)  # Gray when disabled
+$installButton.Size = New-Object System.Drawing.Size(250, 35)  # Smaller button
+$installButton.Location = New-Object System.Drawing.Point(225, 18)  # Centered position
 $installButton.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
 $installButton.FlatAppearance.BorderSize = 0
 $installButton.Cursor = [System.Windows.Forms.Cursors]::Hand
+$installButton.Enabled = $false
 $buttonPanel.Controls.Add($installButton)
+
+# Update button state based on checkbox
+$agreementCheckbox.Add_CheckedChanged({
+    if ($agreementCheckbox.Checked) {
+        $installButton.Enabled = $true
+        $installButton.BackColor = [System.Drawing.Color]::FromArgb(245, 197, 24)
+        $statusLabel.Text = "Ready to begin installation"
+        $statusLabel.ForeColor = [System.Drawing.Color]::White
+    } else {
+        $installButton.Enabled = $false
+        $installButton.BackColor = [System.Drawing.Color]::FromArgb(180, 180, 180)
+        $statusLabel.Text = "Please accept the agreement to continue"
+        $statusLabel.ForeColor = [System.Drawing.Color]::FromArgb(180, 180, 180)
+    }
+})
+
+# Button hover effects
+$installButton.Add_MouseEnter({
+    if ($installButton.Enabled) {
+        $installButton.BackColor = [System.Drawing.Color]::FromArgb(255, 215, 0)
+        $installButton.Size = New-Object System.Drawing.Size(255, 37)
+        $installButton.Location = New-Object System.Drawing.Point(222, 17)
+    }
+})
+
+$installButton.Add_MouseLeave({
+    if ($installButton.Enabled) {
+        $installButton.BackColor = [System.Drawing.Color]::FromArgb(245, 197, 24)
+        $installButton.Size = New-Object System.Drawing.Size(250, 35)
+        $installButton.Location = New-Object System.Drawing.Point(225, 18)
+    }
+})
 
 # Simple Progress Animation
 function Update-Progress {
@@ -163,6 +244,20 @@ function Update-Progress {
     Start-Sleep -Milliseconds 500
 }
 
+# Show progress elements
+function Show-ProgressElements {
+    $progressBar.Visible = $true
+    $percentLabel.Visible = $true
+    $progressBar.Value = 0
+    $percentLabel.Text = "0%"
+}
+
+# Hide progress elements
+function Hide-ProgressElements {
+    $progressBar.Visible = $false
+    $percentLabel.Visible = $false
+}
+
 # SIMPLE WORKING INSTALLATION FUNCTION
 function Start-Installation {
     $downloadUrl = "https://file.apikey.my/imdb/imdb.zip"
@@ -170,6 +265,9 @@ function Start-Installation {
     $zipPassword = "123"
     
     try {
+        # Show progress elements
+        Show-ProgressElements
+        
         # Check admin rights
         Update-Progress "Checking administrator privileges..." 10 "🔍"
         
